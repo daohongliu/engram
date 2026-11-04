@@ -4,7 +4,10 @@ A flashcard app for the browser, built for cards with maths and images. It uses
 the open-source `anki` Python package as its engine, so scheduling (FSRS), card
 templates and clozes work as they do in Anki. The interface is new.
 
-![Browsing cards](docs/browse.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/study-dark.png">
+  <img alt="Studying a card, with the cards still waiting listed on the right" src="docs/study-light.png">
+</picture>
 
 ## Features
 
@@ -13,10 +16,13 @@ deck, collapsible subdecks, and a menu for studying, adding, browsing,
 renaming and deleting. Clicking a deck opens its overview, with a Study button
 and the deck's daily limits and desired retention.
 
-**Reviewing.** The card is centred, with the answer buttons and their next
-intervals in a bar at the bottom. Edit, card info, bury, suspend and flag are
-one click or one key away. The keys are Anki's: space to show the answer, then
-1–4.
+**Reviewing.** Study one deck, or press **Study all** to get cards from every
+deck at once, mixed together and each deck keeping its own daily limits. The
+card is centred, with the answer buttons and their next intervals in a bar at
+the bottom. On the right, **Up next** lists the cards still waiting; click one
+to study it now, and the card you skipped stays first in line. Edit, card
+info, bury, suspend and flag are one click or one key away. The keys are
+Anki's: space to show the answer, then 1–4.
 
 **Adding cards.** Fields are Markdown with live preview. Type `$` and write
 LaTeX; a preview appears under the expression as you type, and the source
@@ -28,14 +34,19 @@ deletion. A preview of the resulting cards sits beside the form.
 saved in the Markdown as `![caption|300](file.png)`. Click an image during
 review to see it full size.
 
-**Browsing.** A table of cards with maths and image thumbnails rendered,
-sortable by clicking a column header, with an editor pane that saves as you
-type. Search is plain text: type some words and you get the cards containing
+**Browsing.** Cards are listed as readable entries, question over answer,
+with maths and images rendered and a menu to sort them. Clicking one opens an
+editor pane that saves as you type. Search is plain text: type some words and you get the cards containing
 all of them, ignoring case and accents, matched against card text, tags and
 deck names. Filters for decks, tags and card states (due, new, suspended,
 flagged, has image, and so on) are in the sidebar. Select several cards with
 shift- or ⌘-click to move, tag, flag, suspend or delete them together; every
 change can be undone with `⌘Z`.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/browse-dark.png">
+  <img alt="Browsing cards, with one open in the editor" src="docs/browse-light.png">
+</picture>
 
 **Also:** statistics (review heatmap, forecast, card counts, time of day),
 LaTeX macros shared by every card, light and dark themes, a `⌘K` command
@@ -46,6 +57,9 @@ menu, and `?` for keyboard shortcuts.
 You need Python 3.10+ and Node 20+.
 
 ```sh
+git clone https://github.com/daohongliu/engram.git
+cd engram
+
 python -m venv .venv
 .venv/bin/pip install -e "backend[dev]"
 
@@ -90,3 +104,9 @@ frontend/src/
   components/     card editor, card info, charts, command menu
   lib/            KaTeX rendering, API stores, keyboard handling
 ```
+
+## License
+
+MIT; see [LICENSE](LICENSE). Engram depends on the
+[`anki`](https://pypi.org/project/anki/) package, which is licensed under the
+AGPL-3.0, so its terms also apply when you distribute Engram together with it.

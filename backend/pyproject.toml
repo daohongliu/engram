@@ -3,6 +3,7 @@ name = "engram"
 version = "0.1.0"
 description = "A calmer, faster web front end for Anki collections"
 requires-python = ">=3.10"
+license = { text = "MIT" }
 dependencies = [
   "anki>=25.2",
   "fastapi>=0.110",
