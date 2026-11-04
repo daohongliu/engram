@@ -80,6 +80,13 @@ export interface ReviewCard {
   answerRepeatsQuestion: boolean;
 }
 
+export interface UpcomingCard {
+  id: number;
+  deck: string;
+  queue: "new" | "learn" | "review";
+  question: string;
+}
+
 export interface Counts {
   new: number;
   learn: number;
@@ -94,6 +101,7 @@ export type NextCard =
       queue: "new" | "learn" | "review";
       intervals: string[];
       card: ReviewCard;
+      upcoming: UpcomingCard[];
     }
   | {
       done: true;
@@ -261,7 +269,9 @@ export const api = {
   deckOptions: (id: number) => get<DeckOptions>(`/api/decks/${id}/options`),
   setDeckOptions: (id: number, o: Partial<DeckOptions>) => put<DeckOptions>(`/api/decks/${id}/options`, o),
 
-  next: (deckId: number) => get<NextCard>(`/api/review/${deckId}/next`),
+  /** deckId 0 studies every deck. With cardId, that card is shown now if it is waiting. */
+  next: (deckId: number, cardId?: number) =>
+    get<NextCard>(`/api/review/${deckId}/next${cardId ? `?cardId=${cardId}` : ""}`),
   answer: (deckId: number, cardId: number, rating: number, ms: number) =>
     post(`/api/review/${deckId}/answer`, { cardId, rating, ms }),
 

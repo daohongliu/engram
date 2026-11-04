@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, CardDetail, NextCard, ReviewCard } from "../api";
+import { api, CardDetail, NextCard, ReviewCard, UpcomingCard } from "../api";
 import { CardHtml } from "../components/CardHtml";
 import { CardInfo } from "../components/CardInfo";
 import { Close, Edit, Info, More } from "../components/Icons";
@@ -20,7 +20,9 @@ const RATINGS = [
 
 const FLAGS = ["", "Red", "Orange", "Green", "Blue", "Pink", "Turquoise", "Purple"];
 
+/** Studies one deck with its subdecks, or every deck when deckId is 0. */
 export function Review({ deckId }: { deckId: number }) {
+  const home = deckId === 0 ? "/" : `/deck/${deckId}`;
   const [data, setData] = useState<NextCard | null>(null);
   const [revealed, setRevealed] = useState(false);
   const [panel, setPanel] = useState<null | "edit" | "info">(null);
@@ -28,9 +30,9 @@ export function Review({ deckId }: { deckId: number }) {
   const shownAt = useRef(Date.now());
   const busy = useRef(false);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (cardId?: number) => {
     try {
-      const next = await api.next(deckId);
+      const next = await api.next(deckId, cardId);
       setData(next);
       setRevealed(false);
       shownAt.current = Date.now();
@@ -94,7 +96,7 @@ export function Review({ deckId }: { deckId: number }) {
     if (panel === "edit" || isTyping(e) || e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.key === "Escape") {
       if (panel) setPanel(null);
-      else navigate(`/deck/${deckId}`);
+      else navigate(home);
       return true;
     }
     if (!card) return;
@@ -115,12 +117,25 @@ export function Review({ deckId }: { deckId: number }) {
     if (k === "u") return void undoLast(), true;
   });
 
+  // Jump to a card further down the queue; the one being skipped stays waiting.
+  const pick = async (cardId: number) => {
+    if (busy.current) return;
+    busy.current = true;
+    try {
+      await load(cardId);
+    } finally {
+      busy.current = false;
+    }
+  };
+
   if (!data) return null;
+  const upcoming = data.done ? null : data.upcoming;
+  const remaining = data.counts.new + data.counts.learn + data.counts.review;
 
   return (
-    <div className="review">
+    <div className={`review ${upcoming ? "has-up-next" : ""}`}>
       <div className="review-top">
-        <a href={`/deck/${deckId}`}>← {data.deckName.split("::").join(" › ")}</a>
+        <a href={home}>← {data.deckName.split("::").join(" › ")}</a>
         {card && card.flag > 0 && (
           <span>
             <span className="cell-flag" style={{ ["--c" as string]: `var(--flag-${card.flag})` }} />
@@ -211,6 +226,8 @@ export function Review({ deckId }: { deckId: number }) {
         </div>
       )}
 
+      {upcoming && <UpNext items={upcoming} more={Math.max(0, remaining - 1 - upcoming.length)} onPick={(id) => void pick(id)} />}
+
       {panel === "info" && card && <InfoDrawer cardId={card.id} onClose={() => setPanel(null)} />}
       {panel === "edit" && card && (
         <EditDrawer
@@ -225,6 +242,34 @@ export function Review({ deckId }: { deckId: number }) {
         />
       )}
     </div>
+  );
+}
+
+const KIND = { new: { label: "New", tone: "c-new" }, learn: { label: "Learning", tone: "c-learn" }, review: { label: "Review", tone: "c-due" } };
+
+function UpNext({ items, more, onPick }: { items: UpcomingCard[]; more: number; onPick: (cardId: number) => void }) {
+  return (
+    <aside className="up-next" aria-label="Up next">
+      <span className="label">Up next</span>
+      {items.length ? (
+        <ol>
+          {items.map((u) => (
+            <li key={u.id}>
+              <button className="up-next-item" onClick={() => onPick(u.id)} title="Study this card now">
+                <span className="up-next-meta">
+                  <span className={`up-next-dot ${KIND[u.queue].tone}`} title={KIND[u.queue].label} />
+                  <span className="up-next-deck">{u.deck.split("::").join(" › ")}</span>
+                </span>
+                <CardHtml html={u.question} className="up-next-q" inline />
+              </button>
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <p className="up-next-empty">This is the last card for now.</p>
+      )}
+      {more > 0 && <p className="up-next-empty">and {plural(more, "more card")}</p>}
+    </aside>
   );
 }
 
@@ -289,7 +334,7 @@ function Finished({ data, deckId }: { data: NextCard & { done: true }; deckId: n
   return (
     <div className="panel finished">
       <h1>Congratulations</h1>
-      <p>You have finished this deck for now.</p>
+      <p>{deckId === 0 ? "You have studied everything for now." : "You have finished this deck for now."}</p>
       {c.studiedToday.cards > 0 && (
         <p className="muted">
           Studied {plural(c.studiedToday.cards, "card")} in {duration(c.studiedToday.seconds)} today.
@@ -302,10 +347,10 @@ function Finished({ data, deckId }: { data: NextCard & { done: true }; deckId: n
       )}
       {c.haveBuried && <p className="muted">Some cards are buried until tomorrow.</p>}
       <div className="finished-actions">
-        <a className="btn" href={`/browse?deck=${encodeURIComponent(data.deckName)}`}>
+        <a className="btn" href={deckId === 0 ? "/browse" : `/browse?deck=${encodeURIComponent(data.deckName)}`}>
           Browse
         </a>
-        <a className="btn" href={`/add?deck=${deckId}`}>
+        <a className="btn" href={deckId === 0 ? "/add" : `/add?deck=${deckId}`}>
           Add cards
         </a>
         <a className="btn btn-primary" href="/">

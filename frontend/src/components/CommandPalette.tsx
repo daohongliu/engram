@@ -32,6 +32,15 @@ export function CommandPalette({ onClose, onHelp }: { onClose: () => void; onHel
       { id: "undo", title: "Undo", hint: "⌘Z", section: "Action", run: () => void undoLast() },
       { id: "help", title: "Keyboard shortcuts", hint: "?", section: "Action", run: onHelp },
     ];
+    const totals = deckData?.totals;
+    const dueAll = totals ? totals.new + totals.learn + totals.review : 0;
+    base.push({
+      id: "study-all",
+      title: "Study all decks",
+      hint: dueAll ? `${dueAll} due` : undefined,
+      section: "Deck",
+      run: () => navigate("/study/all"),
+    });
     for (const d of flattenDecks(deckData?.decks ?? [])) {
       const due = d.new + d.learn + d.review;
       base.push({

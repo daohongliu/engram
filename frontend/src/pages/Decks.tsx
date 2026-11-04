@@ -58,9 +58,14 @@ export function Decks() {
             </p>
           )}
         </div>
-        <button className="btn" onClick={() => setCreating("")}>
-          <Plus /> Create deck
-        </button>
+        <div className="page-actions">
+          <button className="btn" onClick={() => setCreating("")}>
+            <Plus /> Create deck
+          </button>
+          <button className="btn btn-primary" onClick={() => navigate("/study/all")} disabled={!due} title="Study cards from every deck">
+            Study all
+          </button>
+        </div>
       </div>
 
       <div className="panel">

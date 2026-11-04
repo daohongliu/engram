@@ -251,3 +251,54 @@ def test_unused_tags_are_tidied_on_open(tmp_path):
     with store.col() as col:
         assert "orphan" not in col.tags.all()
     store.close()
+
+
+def test_study_all_decks(client, deck_ids):
+    first = client.get("/api/review/0/next").json()
+    assert first["done"] is False
+    assert first["deckName"] == "All decks"
+    totals = client.get("/api/decks").json()["totals"]
+    assert first["counts"] == {"new": totals["new"], "learn": totals["learn"], "review": totals["review"]}
+
+    # Cards come from more than one deck, and the current card is not listed as upcoming.
+    upcoming = first["upcoming"]
+    assert upcoming and first["card"]["id"] not in {u["id"] for u in upcoming}
+    roots = {d.split("::")[0] for d in [first["card"]["deck"], *(u["deck"] for u in upcoming)]}
+    assert len(roots) > 1
+
+    r = client.post("/api/review/0/answer", json={"cardId": first["card"]["id"], "rating": 3})
+    assert r.status_code == 200
+    after = client.get("/api/review/0/next").json()
+    assert after["counts"]["new"] == first["counts"]["new"] - 1
+
+
+def test_jump_ahead_to_an_upcoming_card(client, deck_ids):
+    did = deck_ids["Maths::Probability"]
+    first = client.get(f"/api/review/{did}/next").json()
+    assert first["upcoming"]
+    target = first["upcoming"][-1]["id"]
+
+    shown = client.get(f"/api/review/{did}/next", params={"cardId": target}).json()
+    assert shown["card"]["id"] == target
+    assert first["card"]["id"] in {u["id"] for u in shown["upcoming"]}
+
+    r = client.post(f"/api/review/{did}/answer", json={"cardId": target, "rating": 3})
+    assert r.status_code == 200
+    after = client.get(f"/api/review/{did}/next").json()
+    assert after["counts"]["new"] == first["counts"]["new"] - 1
+    # The skipped card is still first in line.
+    assert after["card"]["id"] == first["card"]["id"]
+
+    # One undo takes the answer back.
+    assert client.post("/api/undo").json()["undid"] == "Answer Card"
+    again = client.get(f"/api/review/{did}/next").json()
+    assert again["counts"]["new"] == first["counts"]["new"]
+    assert target in {again["card"]["id"], *(u["id"] for u in again["upcoming"])}
+
+
+def test_studying_does_not_add_undo_steps(client, deck_ids):
+    did = deck_ids["Maths::Probability"]
+    client.get("/api/review/0/next")
+    client.get(f"/api/review/{did}/next")
+    client.get("/api/review/0/next")
+    assert client.get("/api/undo").json()["undo"] != "Select Deck"

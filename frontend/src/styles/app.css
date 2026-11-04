@@ -572,6 +572,11 @@ kbd {
   color: var(--text-3);
 }
 
+.page-actions {
+  display: flex;
+  gap: 8px;
+}
+
 @media (max-width: 760px) {
   .topbar {
     gap: 8px;
@@ -1126,6 +1131,113 @@ tr:hover .row-menu-btn,
   gap: 8px;
   justify-content: center;
   margin-top: 20px;
+}
+
+/* The cards still waiting, down the right edge. Picking one studies it now. */
+.up-next {
+  --up-next: 288px;
+  display: none;
+  position: fixed;
+  top: var(--topbar);
+  right: 0;
+  bottom: 0;
+  width: var(--up-next);
+  z-index: 5;
+  flex-direction: column;
+  padding: 14px 8px 16px;
+  border-left: 1px solid var(--border);
+  background: var(--bg);
+  overflow-y: auto;
+}
+
+.up-next > .label {
+  display: block;
+  padding: 0 10px 6px;
+}
+
+.up-next ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.up-next-item {
+  display: block;
+  width: 100%;
+  padding: 8px 10px 9px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.up-next-item:hover {
+  background: var(--surface-hover);
+}
+
+.up-next-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.up-next-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+.up-next-dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.up-next-deck {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.up-next-q {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-family: var(--content);
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.up-next-q img {
+  max-height: 40px;
+  width: auto;
+}
+
+.up-next-empty {
+  margin: 6px 10px 0;
+  font-size: 13px;
+  color: var(--text-3);
+}
+
+@media (min-width: 1100px) {
+  .up-next {
+    display: flex;
+  }
+  .review.has-up-next .review-body {
+    padding-right: calc(288px + 24px);
+  }
+  .review.has-up-next .review-bar {
+    right: 288px;
+  }
 }
 
 @media (max-width: 760px) {
