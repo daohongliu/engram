@@ -302,3 +302,36 @@ def test_studying_does_not_add_undo_steps(client, deck_ids):
     client.get(f"/api/review/{did}/next")
     client.get("/api/review/0/next")
     assert client.get("/api/undo").json()["undo"] != "Select Deck"
+
+
+def test_browse_notes_mode(client):
+    cards = client.get("/api/search", params={"text": "spectral theorem"}).json()
+    notes = client.get("/api/search", params={"text": "spectral theorem", "notes": True}).json()
+    # The spectral theorem is one cloze note with three cards.
+    assert cards["total"] == 3
+    assert notes["total"] == 1
+    row = notes["rows"][0]
+    assert sorted(row["cardIds"]) == sorted(r["id"] for r in cards["rows"])
+    assert row["id"] in row["cardIds"]
+    # Every deletion is shown and highlighted, with no cloze syntax left.
+    assert row["question"].count('class="cloze"') == 3
+    assert "{{c" not in row["question"]
+
+    # Looking a note up by one of its cards keeps that card as the entry's id.
+    other = [c for c in row["cardIds"] if c != row["id"]][0]
+    again = client.get("/api/search", params={"cid": other, "notes": True}).json()
+    assert again["total"] == 1 and again["rows"][0]["id"] == other
+
+    # Notes view never has more entries than cards view.
+    all_cards = client.get("/api/search").json()["total"]
+    all_notes = client.get("/api/search", params={"notes": True}).json()["total"]
+    assert 0 < all_notes < all_cards
+
+
+def test_notes_mode_cloze_inside_maths(client):
+    rows = client.get("/api/search", params={"text": "Poisson", "notes": True}).json()["rows"]
+    assert len(rows) == 1
+    q = rows[0]["question"]
+    assert "{{c" not in q
+    # No highlighting markup inside a formula, where it would break the maths.
+    assert all("<span" not in m for m in __import__("re").findall(r"\\\(.*?\\\)", q))

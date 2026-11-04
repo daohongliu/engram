@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import time
 from typing import Any, Literal
 
@@ -8,8 +9,8 @@ from fastapi import APIRouter, HTTPException, Query
 from google.protobuf.json_format import MessageToDict
 from pydantic import BaseModel
 
-from ..cardinfo import describe_due, memory_from_data, render_card
-from ..fields import decode_field
+from ..cardinfo import clean_card_html, describe_due, memory_from_data, render_card
+from ..fields import decode_field, strip_payload
 from ..search import build_query, refine
 from ..store import collection, drop_unused_tags
 
@@ -38,7 +39,13 @@ def search(
     offset: int = Query(0, ge=0),
     limit: int = Query(60, ge=1, le=500),
     cid: int | None = None,
+    notes: bool = False,
 ) -> dict[str, Any]:
+    """Cards matching the search, or with ``notes``, one entry per note.
+
+    In notes mode an entry stands for a note and carries all its card ids;
+    its scheduling details come from its first matching card (or ``cid``).
+    """
     started = time.perf_counter()
     order_sql = ORDERS.get(order, ORDERS["added"]).format(dir="desc" if desc else "asc")
     with collection() as col:
@@ -50,16 +57,60 @@ def search(
             # if it somehow does, show nothing rather than an error.
             ids = []
         ids = refine(col, ids, text)
-        page = ids[offset : offset + limit]
+        if notes:
+            groups = _first_card_per_note(col, ids)
+            total, rows = len(groups), _note_rows(col, groups[offset : offset + limit])
+        else:
+            total, rows = len(ids), _rows(col, ids[offset : offset + limit])
         return {
-            "total": len(ids),
+            "total": total,
             "offset": offset,
-            "rows": _rows(col, page),
+            "rows": rows,
             "ms": round((time.perf_counter() - started) * 1000, 1),
         }
 
 
-def _rows(col, card_ids: list[int]) -> list[dict[str, Any]]:
+def _first_card_per_note(col, card_ids: list[int]) -> list[int]:
+    """The first card of each note, in the order the notes first appear."""
+    if not card_ids:
+        return []
+    nid_of = dict(col.db.all("select id, nid from cards"))
+    seen: dict[int, int] = {}
+    for cid in card_ids:
+        seen.setdefault(nid_of[cid], cid)
+    return list(seen.values())
+
+
+# {{c1::text}} or {{c1::text::hint}}
+_CLOZE_RE = re.compile(r"\{\{c\d+::(.*?)(?:::[^}]*?)?\}\}", re.S)
+_MATH_RE = re.compile(r"(\\\(.*?\\\)|\\\[.*?\\\])", re.S)
+
+
+def _field_html(raw: str) -> str:
+    """A field for display, with every cloze deletion shown and highlighted.
+
+    Inside maths a deletion is shown as plain text, as Anki does on the back
+    of a card, since HTML there would break the formula.
+    """
+    parts = _MATH_RE.split(clean_card_html(strip_payload(raw)))
+    return "".join(
+        _CLOZE_RE.sub(r"\1", part) if i % 2 else _CLOZE_RE.sub(r'<span class="cloze">\1</span>', part)
+        for i, part in enumerate(parts)
+    )
+
+
+def _note_rows(col, card_ids: list[int]) -> list[dict[str, Any]]:
+    rows = _rows(col, card_ids, render=False)
+    for row in rows:
+        note = col.get_note(row["noteId"])
+        fields = [_field_html(f) for f in note.fields]
+        row["question"] = fields[0] if fields else ""
+        row["answer"] = next((f for f in fields[1:] if f.strip()), "")
+        row["cardIds"] = list(note.card_ids())
+    return rows
+
+
+def _rows(col, card_ids: list[int], render: bool = True) -> list[dict[str, Any]]:
     if not card_ids:
         return []
     placeholders = ",".join("?" * len(card_ids))
@@ -80,8 +131,7 @@ def _rows(col, card_ids: list[int]) -> list[dict[str, Any]]:
         if not r:
             continue
         (cid, nid, did, odid, ord_, ctype, queue, due, ivl, reps, lapses, flags, data, mid, tags, mod) = r
-        card = col.get_card(cid)
-        rendered = render_card(card, browser=True)
+        rendered = render_card(col.get_card(cid), browser=True) if render else {"question": "", "answer": ""}
         rows.append(
             {
                 "id": cid,

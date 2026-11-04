@@ -35,8 +35,11 @@ saved in the Markdown as `![caption|300](file.png)`. Click an image during
 review to see it full size.
 
 **Browsing.** Cards are listed as readable entries, question over answer,
-with maths and images rendered and a menu to sort them. Clicking one opens an
-editor pane that saves as you type. Search is plain text: type some words and you get the cards containing
+with maths and images rendered and a menu to sort them. Switch between
+**Cards** and **Notes**: in Notes, a note that makes several cards (a cloze
+with three gaps, say) appears once with every gap highlighted, and actions on
+it apply to all its cards. Clicking an entry opens an editor pane that saves
+as you type. Search is plain text: type some words and you get the cards containing
 all of them, ignoring case and accents, matched against card text, tags and
 deck names. Filters for decks, tags and card states (due, new, suspended,
 flagged, has image, and so on) are in the sidebar. Select several cards with

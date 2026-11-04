@@ -134,6 +134,8 @@ export interface Row {
   flag: number;
   memory: Memory | null;
   modified: number;
+  /** In notes view: every card of the note. */
+  cardIds?: number[];
 }
 
 export interface SearchResult {
@@ -153,6 +155,8 @@ export interface SearchParams {
   offset?: number;
   limit?: number;
   cid?: number;
+  /** One entry per note instead of per card. */
+  notes?: boolean;
 }
 
 export interface Tag {

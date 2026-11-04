@@ -51,6 +51,9 @@ export function Browse() {
   const query = useDebounced(text, 120);
   const [order, setOrder] = useLocalStorage("browse.order", "added");
   const [desc, setDesc] = useLocalStorage("browse.desc", true);
+  const [view, setView] = useLocalStorage<"cards" | "notes">("browse.view", "cards");
+  const notes = view === "notes";
+  const unit = notes ? "note" : "card";
   const [rows, setRows] = useState<Row[]>([]);
   const [total, setTotal] = useState(0);
   const [ms, setMs] = useState<number | null>(null);
@@ -84,7 +87,7 @@ export function Browse() {
       const id = ++seq.current;
       setLoading(true);
       try {
-        const r = await api.search({ text: query, deck, tag, state, order, desc, offset, limit });
+        const r = await api.search({ text: query, deck, tag, state, order, desc, offset, limit, notes });
         if (id !== seq.current) return;
         setTotal(r.total);
         setMs(r.ms);
@@ -93,7 +96,7 @@ export function Browse() {
         if (id === seq.current) setLoading(false);
       }
     },
-    [query, deck, tag, state, order, desc],
+    [query, deck, tag, state, order, desc, notes],
   );
 
   useEffect(() => {
@@ -121,12 +124,18 @@ export function Browse() {
         void refreshAll();
         return;
       }
-      const r = await api.search({ cid: cardId, limit: 1 });
+      const r = await api.search({ cid: cardId, limit: 1, notes });
       if (r.rows[0]) setRows((prev) => prev.map((row) => (row.id === cardId ? r.rows[0] : row)));
       invalidate();
     },
-    [refreshAll],
+    [refreshAll, notes],
   );
+
+  // Switching views changes what an entry is, so start a fresh selection.
+  useEffect(() => {
+    setCurrent(null);
+    setSelected(new Set());
+  }, [notes]);
 
   const currentIndex = rows.findIndex((r) => r.id === current);
 
@@ -197,6 +206,11 @@ export function Browse() {
   });
 
   const runBulk = async (ids: number[], action: BulkAction, extra: Record<string, unknown> = {}) => {
+    // A selected note stands for all of its cards.
+    if (notes) {
+      const byId = new Map(rows.map((r) => [r.id, r]));
+      ids = ids.flatMap((id) => byId.get(id)?.cardIds ?? [id]);
+    }
     try {
       const r = await api.bulk(ids, action, extra);
       const verb: Record<BulkAction, string> = {
@@ -294,9 +308,16 @@ export function Browse() {
             </span>
           ))}
           <span className="results-meta">
-            {plural(total, "card")}
+            {plural(total, unit)}
             {ms !== null && <span>· {ms < 1 ? "<1" : Math.round(ms)} ms</span>}
           </span>
+          <div className="segmented" role="radiogroup" aria-label="Show">
+            {(["cards", "notes"] as const).map((v) => (
+              <button key={v} role="radio" aria-checked={view === v} className={view === v ? "on" : ""} onClick={() => setView(v)}>
+                {v === "cards" ? "Cards" : "Notes"}
+              </button>
+            ))}
+          </div>
           <div className="sort-control">
             <select className="select" value={order} onChange={(e) => setOrder(e.target.value)} aria-label="Sort by">
               {SORTS.map((o) => (
@@ -312,7 +333,7 @@ export function Browse() {
         </div>
 
         {selected.size > 0 && (
-          <BulkToolbar ids={selectedIds} onRun={runBulk} onClear={() => setSelected(new Set())} onSelectAll={() => setSelected(new Set(rows.map((r) => r.id)))} />
+          <BulkToolbar ids={selectedIds} unit={unit} onRun={runBulk} onClear={() => setSelected(new Set())} onSelectAll={() => setSelected(new Set(rows.map((r) => r.id)))} />
         )}
 
         <div className="result-scroll">
@@ -331,7 +352,7 @@ export function Browse() {
           <div ref={sentinel} className="sentinel" />
           {!loading && rows.length === 0 && (
             <div className="empty-state">
-              <h2>No matching cards</h2>
+              <h2>No matching {unit}s</h2>
               <p>{text || filters.length ? "Try fewer words or remove a filter." : "Add some cards to see them here."}</p>
             </div>
           )}
@@ -366,7 +387,7 @@ const ResultCard = memo(function ResultCard({
         checked={selected}
         onChange={() => onToggle(row.id)}
         onClick={(e) => e.stopPropagation()}
-        aria-label="Select card"
+        aria-label={row.cardIds ? "Select note" : "Select card"}
       />
       <div className="result-body">
         <CardHtml html={row.question} className="result-q" />
@@ -379,6 +400,7 @@ const ResultCard = memo(function ResultCard({
           <span className={`result-due due-${state}`}>
             {state === "suspended" ? "suspended" : state === "buried" ? "buried" : row.due.label}
           </span>
+          {row.cardIds && row.cardIds.length > 1 && <span>{plural(row.cardIds.length, "card")}</span>}
           {r != null && (
             <span title={`Recall odds now: ${Math.round(r * 100)}%`}>
               <span className="mini-gauge">
@@ -434,11 +456,13 @@ function DeckTree({ nodes, active, onPick, depth = 0 }: { nodes: DeckNode[]; act
 
 function BulkToolbar({
   ids,
+  unit,
   onRun,
   onClear,
   onSelectAll,
 }: {
   ids: number[];
+  unit: string;
   onRun: (ids: number[], a: BulkAction, extra?: Record<string, unknown>) => Promise<void>;
   onClear: () => void;
   onSelectAll: () => void;
@@ -452,7 +476,7 @@ function BulkToolbar({
   };
   return (
     <div className="bulk-toolbar" role="toolbar" aria-label="Selected cards">
-      <strong>{plural(ids.length, "card")} selected</strong>
+      <strong>{plural(ids.length, unit)} selected</strong>
       {mode === "move" ? (
         <>
           <DeckSelect value={null} onChange={(id) => void run("move", { deckId: id })} />
