@@ -1,7 +1,7 @@
 /**
  * Obsidian-style live preview for CodeMirror 6.
  *
- * Maths, emphasis, headings, links, images, clozes and footnote markers are
+ * Maths, emphasis, headings, links, images and clozes are
  * shown rendered while the cursor is elsewhere. When the cursor walks into
  * one of them, its source reappears so it can be edited, and for maths a
  * floating preview typesets the expression on every keystroke.
@@ -251,8 +251,6 @@ const focusTracker = EditorView.focusChangeEffect.of((_state, focusing) => setFo
 
 const hide = Decoration.replace({});
 const CLOZE_RE = /\{\{c(\d+)::([\s\S]*?)\}\}/g;
-const FOOTREF_RE = /\[\^([^\]\s]+)\](?!:)/g;
-const FOOTDEF_RE = /^\[\^([^\]\s]+)\]:/gm;
 
 interface Built {
   decorations: DecorationSet;
@@ -368,7 +366,6 @@ function build(state: EditorState): Built {
         case "LinkReference":
           return false;
         case "Link": {
-          if (text.startsWith("[^", from)) return false; // footnote, handled below
           if (!touches(from, to)) {
             const cur = node.node.cursor();
             if (cur.firstChild()) {
@@ -421,22 +418,6 @@ function build(state: EditorState): Built {
           : hide.range(answerEnd, to),
       );
     }
-  }
-
-  // Footnotes: [^1] references and [^1]: definitions
-  for (const m of text.matchAll(FOOTREF_RE)) {
-    const from = m.index!;
-    const to = from + m[0].length;
-    if (inCode(from) || inMath(from, to)) continue;
-    if (!touches(from, to)) {
-      reps.push(Decoration.replace({ widget: new TextWidget(m[1], "cm-footref") }).range(from, to));
-    } else {
-      decos.push(Decoration.mark({ class: "cm-footref-src" }).range(from, to));
-    }
-  }
-  for (const m of text.matchAll(FOOTDEF_RE)) {
-    const line = doc.lineAt(m.index!);
-    decos.push(Decoration.line({ class: "cm-footdef" }).range(line.from));
   }
 
   return { decorations: Decoration.set([...decos, ...dropOverlaps(reps)], true), math };

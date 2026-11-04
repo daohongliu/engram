@@ -11,7 +11,7 @@ export function Lightbox() {
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
-      if (target.tagName !== "IMG" || !target.closest(".review-card .card-html, .sidenote, .finished")) return;
+      if (target.tagName !== "IMG" || !target.closest(".card-sheet .card-html")) return;
       e.preventDefault();
       e.stopPropagation();
       setZoomed(false);
@@ -48,7 +48,6 @@ export function Lightbox() {
         }}
       />
       {img.alt && <p className="lightbox-caption">{img.alt}</p>}
-      <p className="lightbox-hint">click the picture to {zoomed ? "fit it" : "see it at full size"} · esc to close</p>
     </div>
   );
 }

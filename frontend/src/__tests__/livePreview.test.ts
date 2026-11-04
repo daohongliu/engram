@@ -72,3 +72,13 @@ describe("images", () => {
     expect(mediaUrl("https://example.com/a.png")).toBe("https://example.com/a.png");
   });
 });
+
+describe("preamble", () => {
+  it("keeps every macro even when one line redefines a KaTeX built-in", async () => {
+    const { setPreamble, renderTex } = await import("../lib/math");
+    const err = setPreamble("% comment\n\\newcommand{\\R}{\\mathbb{R}}\n\\newcommand{\\Q}{\\mathbb{Q}}\n\\newcommand{\\eps}{\\varepsilon}");
+    expect(err).toBeNull();
+    expect(renderTex("\\Q \\eps", false)).not.toContain("tex-error");
+    expect(setPreamble("\\newcommand{\\bad}{\\frac{")).not.toBeNull();
+  });
+});

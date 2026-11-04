@@ -28,7 +28,6 @@ from dataclasses import dataclass
 from markdown_it import MarkdownIt
 from markdown_it.rules_inline import StateInline
 from mdit_py_plugins.dollarmath import dollarmath_plugin
-from mdit_py_plugins.footnote import footnote_plugin
 
 BRAILLE_BASE = 0x2800
 SEP = "⣿"  # ⠿, also a valid payload byte (0xff never occurs in UTF-8)
@@ -115,7 +114,6 @@ def _image(self, tokens, idx, options, env) -> str:
 def _build_md() -> MarkdownIt:
     md = MarkdownIt("commonmark", {"html": True, "breaks": True, "typographer": False})
     md.enable(["table", "strikethrough"])
-    md.use(footnote_plugin)
     md.use(dollarmath_plugin, double_inline=True, allow_digits=False, allow_space=False)
     md.inline.ruler.before("escape", "paren_math", _paren_math)
     md.add_render_rule("image", _image)

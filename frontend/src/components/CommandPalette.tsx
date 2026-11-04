@@ -1,5 +1,5 @@
 import { KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
-import { rank } from "../lib/query";
+import { rank } from "../lib/fuzzy";
 import { navigate } from "../lib/router";
 import { decks, flattenDecks } from "../lib/store";
 import { cycleTheme } from "../lib/theme";
@@ -23,16 +23,14 @@ export function CommandPalette({ onClose, onHelp }: { onClose: () => void; onHel
 
   const commands = useMemo<Command[]>(() => {
     const base: Command[] = [
-      { id: "home", title: "Contents", hint: "g c", section: "Go to", run: () => navigate("/") },
-      { id: "browse", title: "Browse cards", hint: "g b", section: "Go to", run: () => navigate("/browse") },
-      { id: "write", title: "Write a new card", hint: "n", section: "Go to", run: () => navigate("/write") },
-      { id: "almanac", title: "Almanac (statistics)", hint: "g a", section: "Go to", run: () => navigate("/almanac") },
-      { id: "settings", title: "Settings and LaTeX preamble", hint: "g s", section: "Go to", run: () => navigate("/settings") },
-      { id: "theme", title: "Change theme", section: "Do", run: cycleTheme },
-      { id: "undo", title: "Undo last change", hint: "⌘Z", section: "Do", run: () => void undoLast() },
-      { id: "help", title: "Keyboard shortcuts", hint: "?", section: "Do", run: onHelp },
-      { id: "due", title: "Browse everything due today", section: "Search", run: () => navigate("/browse?q=is%3Adue") },
-      { id: "fragile", title: "Browse cards you are about to forget", section: "Search", run: () => navigate("/browse?q=is%3Afragile") },
+      { id: "home", title: "Decks", hint: "g d", section: "Go to", run: () => navigate("/") },
+      { id: "add", title: "Add card", hint: "g a", section: "Go to", run: () => navigate("/add") },
+      { id: "browse", title: "Browse", hint: "g b", section: "Go to", run: () => navigate("/browse") },
+      { id: "stats", title: "Stats", hint: "g s", section: "Go to", run: () => navigate("/stats") },
+      { id: "settings", title: "Settings", section: "Go to", run: () => navigate("/settings") },
+      { id: "theme", title: "Toggle theme", section: "Action", run: cycleTheme },
+      { id: "undo", title: "Undo", hint: "⌘Z", section: "Action", run: () => void undoLast() },
+      { id: "help", title: "Keyboard shortcuts", hint: "?", section: "Action", run: onHelp },
     ];
     for (const d of flattenDecks(deckData?.decks ?? [])) {
       const due = d.new + d.learn + d.review;
@@ -40,33 +38,33 @@ export function CommandPalette({ onClose, onHelp }: { onClose: () => void; onHel
         id: `study-${d.id}`,
         title: `Study ${d.fullName.replace(/::/g, " › ")}`,
         hint: due ? `${due} due` : undefined,
-        section: "Decks",
+        section: "Deck",
         run: () => navigate(`/study/${d.id}`),
       });
       base.push({
         id: `browse-${d.id}`,
         title: `Browse ${d.fullName.replace(/::/g, " › ")}`,
-        section: "Decks",
-        run: () => navigate(`/browse?q=${encodeURIComponent(`"deck:${d.fullName}"`)}`),
+        section: "Deck",
+        run: () => navigate(`/browse?deck=${encodeURIComponent(d.fullName)}`),
       });
       base.push({
-        id: `write-${d.id}`,
-        title: `Write a card in ${d.fullName.replace(/::/g, " › ")}`,
-        section: "Decks",
-        run: () => navigate(`/write?deck=${d.id}`),
+        id: `add-${d.id}`,
+        title: `Add card to ${d.fullName.replace(/::/g, " › ")}`,
+        section: "Deck",
+        run: () => navigate(`/add?deck=${d.id}`),
       });
     }
     return base;
   }, [deckData, onHelp]);
 
   const results = useMemo(() => {
-    const ranked = text ? rank(commands, text, (c) => c.title, 12) : commands.filter((c) => c.section !== "Decks" || c.hint).slice(0, 12);
+    const ranked = text ? rank(commands, text, (c) => c.title, 12) : commands.filter((c) => c.section !== "Deck" || c.hint).slice(0, 12);
     if (text.trim()) {
       ranked.push({
         id: "search-text",
         title: `Search cards for “${text.trim()}”`,
         section: "Search",
-        run: () => navigate(`/browse?q=${encodeURIComponent(text.trim())}`),
+        run: () => navigate(`/browse?text=${encodeURIComponent(text.trim())}`),
       });
     }
     return ranked;
@@ -99,7 +97,7 @@ export function CommandPalette({ onClose, onHelp }: { onClose: () => void; onHel
           ref={input}
           className="palette-input"
           value={text}
-          placeholder="Go anywhere, study anything…"
+          placeholder="Type a command, deck or search…"
           onChange={(e) => {
             setText(e.target.value);
             setActive(0);

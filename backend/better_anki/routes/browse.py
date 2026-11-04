@@ -3,7 +3,6 @@ from __future__ import annotations
 import time
 from typing import Any, Literal
 
-from anki.cards import Card
 from anki.errors import NotFoundError, SearchError
 from fastapi import APIRouter, HTTPException, Query
 from google.protobuf.json_format import MessageToDict
@@ -11,7 +10,7 @@ from pydantic import BaseModel
 
 from ..cardinfo import describe_due, memory_from_data, render_card
 from ..fields import decode_field
-from ..search import translate
+from ..search import build_query, refine
 from ..store import collection
 
 router = APIRouter(prefix="/api", tags=["browse"])
@@ -30,35 +29,32 @@ ORDERS = {
 
 @router.get("/search")
 def search(
-    q: str = "",
+    text: str = "",
+    deck: str | None = None,
+    tag: str | None = None,
+    state: str | None = None,
     order: str = "added",
     desc: bool = True,
     offset: int = Query(0, ge=0),
     limit: int = Query(60, ge=1, le=500),
+    cid: int | None = None,
 ) -> dict[str, Any]:
     started = time.perf_counter()
-    anki_query = translate(q)
     order_sql = ORDERS.get(order, ORDERS["added"]).format(dir="desc" if desc else "asc")
     with collection() as col:
+        anki_query = f"cid:{cid}" if cid else build_query(col, text, deck, tag, state)
         try:
-            ids = col.find_cards(anki_query, order=order_sql)
-        except SearchError as exc:
-            return {
-                "ok": False,
-                "error": str(exc).replace("⁨", "").replace("⁩", ""),
-                "query": anki_query,
-            }
-        except Exception:
-            # Fallback for orders the backend does not know (old schema etc.)
-            ids = col.find_cards(anki_query, order=True)
-        page = list(ids[offset : offset + limit])
-        rows = _rows(col, page)
+            ids = list(col.find_cards(anki_query, order=order_sql))
+        except SearchError:
+            # Our own query builder should never produce an invalid search;
+            # if it somehow does, show nothing rather than an error.
+            ids = []
+        ids = refine(col, ids, text)
+        page = ids[offset : offset + limit]
         return {
-            "ok": True,
-            "query": anki_query,
             "total": len(ids),
             "offset": offset,
-            "rows": rows,
+            "rows": _rows(col, page),
             "ms": round((time.perf_counter() - started) * 1000, 1),
         }
 
@@ -108,28 +104,14 @@ def _rows(col, card_ids: list[int]) -> list[dict[str, Any]]:
     return rows
 
 
-@router.get("/search/vocab")
-def vocab() -> dict[str, Any]:
-    """Everything the search box needs to autocomplete, in one request."""
+@router.get("/tags")
+def tags() -> list[dict[str, Any]]:
     with collection() as col:
-        decks = sorted(d.name for d in col.decks.all_names_and_ids())
-        tag_counts = dict(
-            col.db.all(
-                "select tag, 0 from tags"
-            )
-        )
-        notetypes = []
-        fields: set[str] = set()
-        for m in col.models.all():
-            names = [f["name"] for f in m["flds"]]
-            fields.update(names)
-            notetypes.append({"id": m["id"], "name": m["name"], "fields": names})
-        return {
-            "decks": decks,
-            "tags": sorted(tag_counts.keys(), key=str.lower),
-            "notetypes": notetypes,
-            "fields": sorted(fields, key=str.lower),
-        }
+        counts: dict[str, int] = {}
+        for (tagstr,) in col.db.all("select tags from notes where tags != ''"):
+            for t in tagstr.split():
+                counts[t] = counts.get(t, 0) + 1
+        return [{"name": t, "notes": counts.get(t, 0)} for t in sorted(col.tags.all(), key=str.lower)]
 
 
 @router.get("/cards/{card_id}")

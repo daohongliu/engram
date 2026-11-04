@@ -128,15 +128,28 @@ export interface Row {
   modified: number;
 }
 
-export type SearchResult =
-  | { ok: true; query: string; total: number; offset: number; rows: Row[]; ms: number }
-  | { ok: false; error: string; query: string };
+export interface SearchResult {
+  total: number;
+  offset: number;
+  rows: Row[];
+  ms: number;
+}
 
-export interface Vocab {
-  decks: string[];
-  tags: string[];
-  notetypes: { id: number; name: string; fields: string[] }[];
-  fields: string[];
+export interface SearchParams {
+  text?: string;
+  deck?: string | null;
+  tag?: string | null;
+  state?: string | null;
+  order?: string;
+  desc?: boolean;
+  offset?: number;
+  limit?: number;
+  cid?: number;
+}
+
+export interface Tag {
+  name: string;
+  notes: number;
 }
 
 export interface Field {
@@ -215,7 +228,6 @@ export interface Settings {
   collectionPath: string;
   mediaPath: string;
   fsrs: boolean;
-  savedSearches: { name: string; query: string }[];
 }
 
 export interface DeckOptions {
@@ -253,11 +265,12 @@ export const api = {
   answer: (deckId: number, cardId: number, rating: number, ms: number) =>
     post(`/api/review/${deckId}/answer`, { cardId, rating, ms }),
 
-  search: (q: string, order: string, desc: boolean, offset = 0, limit = 60) =>
-    get<SearchResult>(
-      `/api/search?${new URLSearchParams({ q, order, desc: String(desc), offset: String(offset), limit: String(limit) })}`,
-    ),
-  vocab: () => get<Vocab>("/api/search/vocab"),
+  search: (p: SearchParams) => {
+    const qs = new URLSearchParams();
+    for (const [k, v] of Object.entries(p)) if (v !== undefined && v !== null && v !== "") qs.set(k, String(v));
+    return get<SearchResult>(`/api/search?${qs}`);
+  },
+  tags: () => get<Tag[]>("/api/tags"),
   card: (id: number) => get<CardDetail>(`/api/cards/${id}`),
   bulk: (ids: number[], action: BulkAction, extra: Record<string, unknown> = {}) =>
     post<{ ok: boolean; count: number; undo?: string }>("/api/cards/bulk", { ids, action, ...extra }),

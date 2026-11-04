@@ -27,5 +27,5 @@ function decorate(s: string) {
     .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
     .replace(/(^|[^*])\*([^*\s][^*]*?)\*/g, "$1<em>$2</em>")
     .replace(/`([^`]+)`/g, "<code>$1</code>")
-    .replace(/\[\^[^\]]+\]/g, "");
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, "[image]");
 }

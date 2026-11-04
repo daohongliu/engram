@@ -1,5 +1,5 @@
 import { useEffect, useSyncExternalStore } from "react";
-import { api, Counts, DeckNode, Notetype, Settings, Vocab } from "../api";
+import { api, Counts, DeckNode, Notetype, Settings, Tag } from "../api";
 import { setPreamble } from "./math";
 
 /**
@@ -39,14 +39,14 @@ function resource<T>(load: () => Promise<T>, onLoad?: (v: T) => void) {
 }
 
 export const decks = resource<{ decks: DeckNode[]; totals: Counts }>(api.decks);
-export const vocab = resource<Vocab>(api.vocab);
+export const tags = resource<Tag[]>(api.tags);
 export const notetypes = resource<Notetype[]>(api.notetypes);
 export const settings = resource<Settings>(api.settings, (s) => setPreamble(s.preamble));
 
 /** Refresh everything that a change to cards or notes could affect. */
 export function invalidate() {
   void decks.refresh();
-  void vocab.refresh();
+  void tags.refresh();
 }
 
 export function flattenDecks(nodes: DeckNode[], depth = 0): (DeckNode & { depth: number })[] {

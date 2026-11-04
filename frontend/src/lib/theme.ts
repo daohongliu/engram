@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 
-export type Theme = "auto" | "light" | "dark" | "chalkboard";
+export type Theme = "auto" | "light" | "dark";
 const KEY = "better-anki.theme";
 const listeners = new Set<() => void>();
 

@@ -11,19 +11,19 @@ import { toast } from "../lib/toast";
 import { deleteDollarPair, highestCloze, insertCloze, livePreview, wrapWith } from "./livePreview";
 
 const highlight = HighlightStyle.define([
-  { tag: t.heading1, fontFamily: "var(--display)", fontSize: "1.45em", fontWeight: "560" },
-  { tag: t.heading2, fontFamily: "var(--display)", fontSize: "1.25em", fontWeight: "560" },
-  { tag: t.heading3, fontFamily: "var(--display)", fontSize: "1.1em", fontWeight: "600" },
+  { tag: t.heading1, fontSize: "1.3em", fontWeight: "600" },
+  { tag: t.heading2, fontSize: "1.15em", fontWeight: "600" },
+  { tag: t.heading3, fontWeight: "600" },
   { tag: t.strong, fontWeight: "650" },
   { tag: t.emphasis, fontStyle: "italic" },
-  { tag: t.strikethrough, textDecoration: "line-through", color: "var(--ink-3)" },
-  { tag: t.monospace, fontFamily: "var(--mono)", fontSize: "0.86em", color: "var(--accent-ink)" },
-  { tag: t.link, color: "var(--blue)", textDecoration: "underline" },
-  { tag: t.url, color: "var(--ink-3)" },
-  { tag: t.quote, color: "var(--ink-2)", fontStyle: "italic" },
-  { tag: t.processingInstruction, color: "var(--ink-3)" },
-  { tag: t.meta, color: "var(--ink-3)" },
-  { tag: t.contentSeparator, color: "var(--ink-3)" },
+  { tag: t.strikethrough, textDecoration: "line-through", color: "var(--text-3)" },
+  { tag: t.monospace, fontFamily: "var(--mono)", fontSize: "0.82em" },
+  { tag: t.link, color: "var(--accent)" },
+  { tag: t.url, color: "var(--text-3)" },
+  { tag: t.quote, color: "var(--text-2)" },
+  { tag: t.processingInstruction, color: "var(--text-3)" },
+  { tag: t.meta, color: "var(--text-3)" },
+  { tag: t.contentSeparator, color: "var(--text-3)" },
 ]);
 
 export interface MarkdownFieldProps {

@@ -1,8 +1,6 @@
-"""A small demo collection so a fresh install has something to look at.
-
-The cards double as a tour of the app: the "Start here" deck explains the
-features, and the maths decks show off Markdown, LaTeX, clozes and
-footnotes (which become margin notes during review).
+"""A small demo collection so a fresh install has something to look at:
+a few decks of maths and computer science cards using Markdown, LaTeX,
+clozes and an image. Delete them whenever you like.
 """
 
 from __future__ import annotations
@@ -11,8 +9,7 @@ from anki.collection import Collection
 
 from .fields import encode_field
 
-# A small diagram so the demo shows an image card. Drawn by hand, in the
-# sense that someone typed every coordinate.
+# A small diagram so the demo includes an image card.
 UNIT_CIRCLE_SVG = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="480" height="480">
 <rect width="240" height="240" fill="#fbf8f1"/>
 <g fill="none" stroke="#887d6e" stroke-width="1">
@@ -38,73 +35,6 @@ R = "Basic (and reversed card)"
 C = "Cloze"
 
 NOTES: list[tuple[str, str, list[str], list[str]]] = [
-    # ---------------------------------------------------------------- tour
-    (
-        "Start here",
-        B,
-        [
-            "What happens when you press **space**?",
-            "The answer appears below a hand-drawn line. Then press **1–4**:\n\n"
-            "1. *Again*: you forgot\n2. *Hard*\n3. *Good*: the usual one\n4. *Easy*\n\n"
-            "The little grey numbers on each button say when you will see the card next.",
-        ],
-        ["tour"],
-    ),
-    (
-        "Start here",
-        B,
-        [
-            "How do I write maths on a card?",
-            "Type `$` and start writing LaTeX: $e^{i\\pi} + 1 = 0$. The editor renders it as you type, "
-            "Obsidian-style, and shows the source again when your cursor walks back in.\n\n"
-            "Display maths uses two dollars:\n\n$$\n\\int_{-\\infty}^{\\infty} e^{-x^2}\\,dx = \\sqrt{\\pi}\n$$",
-        ],
-        ["tour", "maths"],
-    ),
-    (
-        "Start here",
-        B,
-        [
-            "What are margin notes?",
-            "Footnotes in Markdown[^fn] turn into notes in the right-hand margin while you review, "
-            "so asides do not clutter the answer.\n\n"
-            "[^fn]: Like this one. Write `[^1]` in the text and `[^1]: …` at the bottom.",
-        ],
-        ["tour"],
-    ),
-    (
-        "Start here",
-        C,
-        [
-            "In the browser, `{{c1::#tag}}` searches tags, `{{c2::@deck}}` searches decks, "
-            "and `{{c3::is:due}}` finds what is waiting for you today.",
-            "Everything else in Anki's search language still works, and the sentence under the "
-            "search box explains what your query means.",
-        ],
-        ["tour", "search"],
-    ),
-    (
-        "Start here",
-        B,
-        [
-            "How do I put a picture on a card?",
-            "Paste it. A screenshot on the clipboard goes straight into whichever field you are typing "
-            "in; you can also drag files in, or use **+ image** above a field.\n\n"
-            "Drag the corner of a picture to resize it. That writes the width into the Markdown as "
-            "`![caption|300](file.png)`, which you can also type yourself.",
-        ],
-        ["tour", "images"],
-    ),
-    (
-        "Start here",
-        B,
-        [
-            "Where are the keyboard shortcuts?",
-            "Press `?` anywhere. The two worth learning first are **⌘K** (or Ctrl-K) for the "
-            "command palette and **/** to jump to search.",
-        ],
-        ["tour"],
-    ),
     # ---------------------------------------------------- linear algebra
     (
         "Maths::Linear Algebra",
@@ -114,8 +44,7 @@ NOTES: list[tuple[str, str, list[str], list[str]]] = [
             "For a linear map $T: V \\to W$ with $V$ finite-dimensional,\n\n"
             "$$\n\\dim V = \\operatorname{rank} T + \\operatorname{nullity} T.\n$$\n\n"
             "Here $\\operatorname{rank} T = \\dim \\operatorname{im} T$ and "
-            "$\\operatorname{nullity} T = \\dim \\ker T$.[^1]\n\n"
-            "[^1]: Proof sketch: extend a basis of $\\ker T$ to a basis of $V$; the images of the new vectors form a basis of $\\operatorname{im} T$.",
+            "$\\operatorname{nullity} T = \\dim \\ker T$.",
         ],
         ["linalg", "theorem"],
     ),
@@ -163,8 +92,7 @@ NOTES: list[tuple[str, str, list[str], list[str]]] = [
         B,
         [
             "![The unit circle|240](unit-circle.svg)\n\nWhat are the coordinates of $P$?",
-            "$P = (\\cos\\theta, \\sin\\theta)$, which is where both functions are *defined*, "
-            "not just illustrated.[^1]\n\n[^1]: Click a picture during review to see it full size.",
+            "$P = (\\cos\\theta, \\sin\\theta)$.",
         ],
         ["analysis", "trigonometry"],
     ),
@@ -283,5 +211,3 @@ def seed_collection(col: Collection) -> None:
             note.fields[i] = encode_field(src, doc_id=names[i].lower().replace(" ", ""))
         note.tags = tags
         col.add_note(note, deck_id)
-    # The default deck is noise in a fresh collection.
-    col.decks.select(col.decks.id("Start here"))

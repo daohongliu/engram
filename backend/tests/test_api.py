@@ -33,24 +33,19 @@ def test_answer_for_wrong_card_is_refused(client, deck_ids):
     assert r.status_code == 409
 
 
-def test_search_shorthands_and_errors(client):
-    r = client.get("/api/search", params={"q": "@linear #eigen"}).json()
-    assert r["ok"] and r["total"] >= 2
-    assert r["query"] == "deck:*linear* tag:eigen"
+def test_search_rows(client):
+    r = client.get("/api/search", params={"text": "eigen"}).json()
+    assert r["total"] >= 2
     row = r["rows"][0]
     assert {"question", "answer", "due", "tags", "memory"} <= row.keys()
-
-    bad = client.get("/api/search", params={"q": "deck:("}).json()
-    assert bad["ok"] is False and "bracket" in bad["error"]
-
     for order in ("added", "due", "interval", "difficulty", "sortfield", "modified"):
-        res = client.get("/api/search", params={"q": "", "order": order}).json()
-        assert res["ok"], order
+        res = client.get("/api/search", params={"order": order}).json()
+        assert res["total"] > 0, order
 
 
 def test_pagination(client):
-    a = client.get("/api/search", params={"q": "", "limit": 5}).json()
-    b = client.get("/api/search", params={"q": "", "limit": 5, "offset": 5}).json()
+    a = client.get("/api/search", params={"limit": 5}).json()
+    b = client.get("/api/search", params={"limit": 5, "offset": 5}).json()
     assert len(a["rows"]) == 5
     assert not {r["id"] for r in a["rows"]} & {r["id"] for r in b["rows"]}
 
@@ -70,7 +65,7 @@ def test_note_lifecycle(client, deck_ids):
     assert note["fields"][0]["source"] == "What is $\\lim_{n\\to\\infty} 1/n$?"
     assert note["tags"] == ["limits"]
 
-    found = client.get("/api/search", params={"q": "#limits"}).json()
+    found = client.get("/api/search", params={"tag": "limits"}).json()
     assert found["total"] == 1
     assert "\\(\\lim" in found["rows"][0]["question"]
 
@@ -111,20 +106,20 @@ def test_preview_skips_empty_optional_cards(client):
 
 
 def test_bulk_actions(client):
-    rows = client.get("/api/search", params={"q": "#theorem"}).json()["rows"]
+    rows = client.get("/api/search", params={"tag": "theorem"}).json()["rows"]
     ids = [r["id"] for r in rows[:2]]
     client.post("/api/cards/bulk", json={"ids": ids, "action": "suspend"})
-    assert client.get("/api/search", params={"q": "is:suspended"}).json()["total"] == 2
+    assert client.get("/api/search", params={"state": "suspended"}).json()["total"] == 2
     client.post("/api/cards/bulk", json={"ids": ids, "action": "addTags", "tags": "bulk"})
-    assert client.get("/api/search", params={"q": "#bulk"}).json()["total"] >= 2
+    assert client.get("/api/search", params={"tag": "bulk"}).json()["total"] >= 2
     client.post("/api/cards/bulk", json={"ids": ids, "action": "flag", "flag": 2})
-    assert client.get("/api/search", params={"q": "flag:2"}).json()["total"] == 2
+    assert client.get("/api/search", params={"state": "flagged"}).json()["total"] == 2
     client.post("/api/undo")
-    assert client.get("/api/search", params={"q": "flag:2"}).json()["total"] == 0
+    assert client.get("/api/search", params={"state": "flagged"}).json()["total"] == 0
 
 
 def test_card_detail(client):
-    cid = client.get("/api/search", params={"q": "rank"}).json()["rows"][0]["id"]
+    cid = client.get("/api/search", params={"text": "rank nullity"}).json()["rows"][0]["id"]
     d = client.get(f"/api/cards/{cid}").json()
     assert d["fields"][0]["kind"] == "md"
     assert "rank" in d["fields"][0]["source"]
@@ -187,11 +182,20 @@ def test_deck_crud_and_options(client):
     did = r["id"]
     assert client.post("/api/decks", json={"name": "Topology::Point-set"}).status_code == 409
     client.patch(f"/api/decks/{did}", json={"name": "Topology::General"})
-    names = client.get("/api/search/vocab").json()["decks"]
-    assert "Topology::General" in names
+    def names(nodes):
+        for n in nodes:
+            yield n["fullName"]
+            yield from names(n["children"])
+
+    assert "Topology::General" in set(names(client.get("/api/decks").json()["decks"]))
     opts = client.put(f"/api/decks/{did}/options", json={"newPerDay": 7, "desiredRetention": 0.88}).json()
     assert opts["newPerDay"] == 7 and abs(opts["desiredRetention"] - 0.88) < 1e-6
 
 
 def test_spa_fallback(client):
     assert client.get("/api/nope").status_code == 404
+
+
+def test_tags_endpoint(client):
+    tags = {t["name"]: t["notes"] for t in client.get("/api/tags").json()}
+    assert tags["theorem"] >= 3

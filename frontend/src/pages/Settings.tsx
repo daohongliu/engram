@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
-import { getPreambleError, renderTex, setPreamble } from "../lib/math";
+import { renderTex, setPreamble } from "../lib/math";
 import { settings as settingsStore } from "../lib/store";
 import { setTheme, Theme, useTheme } from "../lib/theme";
 import { toast } from "../lib/toast";
@@ -22,8 +22,8 @@ export function SettingsPage() {
     setErr(setPreamble(preamble));
   }, [preamble]);
 
-  // Restore the saved preamble if we leave without saving.
-  useEffect(() => () => void (s && setPreamble(settingsStore.get()?.preamble ?? s.preamble)), [s]);
+  // Leaving without saving restores the saved macros.
+  useEffect(() => () => void setPreamble(settingsStore.get()?.preamble ?? ""), []);
 
   const save = async () => {
     try {
@@ -35,59 +35,52 @@ export function SettingsPage() {
     }
   };
 
+  const dirty = s && preamble !== s.preamble;
+
   return (
-    <div className="three-col settings-page">
-      <aside className="margin margin-left" />
-      <article className="main-col">
-        <header className="page-header">
-          <p className="kicker">Small print</p>
-          <h1>Settings</h1>
-        </header>
+    <div className="container">
+      <div className="page-head">
+        <h1>Settings</h1>
+      </div>
 
-        <section className="settings-section">
-          <h2>LaTeX preamble</h2>
-          <p>
-            Macros defined here work in every card and in the editor’s live preview. Use <code>\newcommand</code> or{" "}
-            <code>\def</code>, one per line.
-          </p>
-          <textarea className="preamble" value={preamble} onChange={(e) => setPre(e.target.value)} spellCheck={false} rows={12} />
-          {err && <p className="query-error">Hmm. {err}</p>}
-          <div className="preamble-try">
-            <label>
-              Try it:
-              <input value={sample} onChange={(e) => setSample(e.target.value)} spellCheck={false} />
-            </label>
-            <div className="preamble-out" dangerouslySetInnerHTML={{ __html: renderTex(sample, true) }} />
-          </div>
-          <button className="button button-primary" onClick={() => void save()} disabled={!!getPreambleError()}>
-            Save preamble
+      <section className="panel settings-section">
+        <h2>Appearance</h2>
+        <p>Theme</p>
+        <div className="segmented">
+          {(["auto", "light", "dark"] as Theme[]).map((t) => (
+            <button key={t} className={theme === t ? "on" : ""} onClick={() => setTheme(t)}>
+              {t === "auto" ? "System" : t === "light" ? "Light" : "Dark"}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="panel settings-section">
+        <h2>LaTeX macros</h2>
+        <p>Definitions here apply to every card and to the editor preview. One <code>\newcommand</code> or <code>\def</code> per line.</p>
+        <textarea className="preamble" value={preamble} onChange={(e) => setPre(e.target.value)} spellCheck={false} />
+        {err && <p className="error-text">{err}</p>}
+        <div className="preamble-try">
+          <input className="input" value={sample} onChange={(e) => setSample(e.target.value)} spellCheck={false} aria-label="Test expression" />
+        </div>
+        <div className="preamble-out" dangerouslySetInnerHTML={{ __html: renderTex(sample, true) }} />
+        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}>
+          <button className="btn btn-primary" onClick={() => void save()} disabled={!dirty || !!err}>
+            Save
           </button>
-        </section>
+        </div>
+      </section>
 
-        <section className="settings-section">
-          <h2>Appearance</h2>
-          <div className="segmented">
-            {(["auto", "light", "dark"] as Theme[]).map((t) => (
-              <button key={t} className={theme === t ? "on" : ""} onClick={() => setTheme(t)}>
-                {t === "auto" ? "Follow the system" : t === "light" ? "Paper" : "Lamplight"}
-              </button>
-            ))}
-          </div>
-        </section>
-
-        <section className="settings-section">
-          <h2>Collection</h2>
-          <p>
-            Your cards live in <code>{s?.collectionPath}</code>, and pictures in{" "}
-            <code>{s?.mediaPath}</code>. Back up that folder and you have backed up everything. Start the
-            server with <code>--collection some/other/collection.anki2</code> to keep a separate collection.
-          </p>
-          <p>
-            Scheduler: {s?.fsrs ? "FSRS, the modern memory model Anki ships with." : "the classic SM-2 algorithm."}
-          </p>
-        </section>
-      </article>
-      <aside className="margin margin-right" />
+      <section className="panel settings-section">
+        <h2>Data</h2>
+        <p>
+          Collection: <code>{s?.collectionPath}</code>
+        </p>
+        <p>
+          Images: <code>{s?.mediaPath}</code>
+        </p>
+        <p className="muted">Back up this folder to back up everything. The scheduler is {s?.fsrs ? "FSRS" : "SM-2"}.</p>
+      </section>
     </div>
   );
 }

@@ -1,79 +1,45 @@
 # Better Anki
 
-A calmer, faster flashcard app in the browser, for maths-heavy and picture-heavy
-cards. Underneath it uses the open-source `anki` Python package as its engine, so
-it gets Anki's scheduler (FSRS), card templates, clozes and search language for
-free. Everything you look at and type into is new.
+A flashcard app for the browser, built for cards with maths and images. It uses
+the open-source `anki` Python package as its engine, so scheduling (FSRS), card
+templates and clozes work as they do in Anki. The interface is new.
 
-![The contents page](docs/contents.png)
+![Browsing cards](docs/browse.png)
 
-## What it does
+## Features
 
-**Writing cards.** Fields are Markdown with live preview, in the manner of
-Obsidian. Type `$` and the editor pairs it; as you write LaTeX a small preview
-floats under the expression and re-typesets on every keystroke. Move the cursor
-away and the source collapses into rendered maths; click it to get the source
-back. Bold, italics, headings, links, images and cloze deletions behave the same
-way. `⌘⇧C` wraps a selection in the next cloze number.
+**Decks.** The deck list works like Anki's: new, learning and due counts per
+deck, collapsible subdecks, and a menu for studying, adding, browsing,
+renaming and deleting. Clicking a deck opens its overview, with a Study button
+and the deck's daily limits and desired retention.
 
-**Images.** Paste a screenshot into any field and it goes onto the card; you can
-also drop image files in, or use **+ image** above a field (the only option on a
-phone or tablet). While it uploads, a placeholder holds its place. The picture
-shows in the editor straight away; drag its corner to resize it, which records
-the width in the Markdown as `![caption|300](paste-….png)`, Obsidian's syntax.
-During review, click a picture to see it full size. In the browser, cards show
-thumbnails, and `has:image` (or the "With an image" filter) finds every card
-with a picture. Pasted images are named by their content, so pasting the same
-screenshot twice stores it once.
+**Reviewing.** The card is centred, with the answer buttons and their next
+intervals in a bar at the bottom. Edit, card info, bury, suspend and flag are
+one click or one key away. The keys are Anki's: space to show the answer, then
+1–4.
 
-![Writing a card: the maths preview follows the cursor](docs/write.png)
+**Adding cards.** Fields are Markdown with live preview. Type `$` and write
+LaTeX; a preview appears under the expression as you type, and the source
+collapses into rendered maths when the cursor leaves it. `⌘⇧C` makes a cloze
+deletion. A preview of the resulting cards sits beside the form.
 
-**Margin notes.** Markdown footnotes (`[^1]`) are lifted out of the card during
-review and set in the right-hand margin beside the line that cites them, so
-asides and proof sketches stay out of the answer until you want them.
+**Images.** Paste a screenshot into a field, drop image files in, or use
+"Add image". Drag an image's corner in the editor to resize it; the width is
+saved in the Markdown as `![caption|300](file.png)`. Click an image during
+review to see it full size.
 
-**Browsing.** The browser is a single page with three columns: filters on the
-left, the cards themselves (rendered, with maths) in the middle, and the selected
-card open for editing on the right. Edits save themselves. Search is instant
-(results update as you type, usually in a few milliseconds), autocompletes tags,
-decks and keywords, and reads your query back as an English sentence whose
-clauses you can click to negate or remove. Anki's full search language still
-works, plus a few shorthands:
+**Browsing.** A table of cards with maths and image thumbnails rendered,
+sortable by clicking a column header, with an editor pane that saves as you
+type. Search is plain text: type some words and you get the cards containing
+all of them, ignoring case and accents, matched against card text, tags and
+deck names. Filters for decks, tags and card states (due, new, suspended,
+flagged, has image, and so on) are in the sidebar. Select several cards with
+shift- or ⌘-click to move, tag, flag, suspend or delete them together; every
+change can be undone with `⌘Z`.
 
-| You type          | Anki sees                  |
-|-------------------|----------------------------|
-| `#calculus`       | `tag:calculus`             |
-| `@analysis`       | `deck:*analysis*`          |
-| `is:due`          | `is:due` (unchanged)       |
-| `is:fragile`      | `prop:r<0.8` (likely to be forgotten) |
-| `is:hard`         | `prop:d>0.7`               |
-| `has:image`       | cards containing a picture |
-
-`j`/`k` move through results, `x` selects, shift-click selects a range, and a bar
-appears for bulk moves, tags, flags, suspension and deletion. Nothing asks for
-confirmation; everything can be undone with `⌘Z` or the button on the toast.
-
-![The browser, with a card open for editing](docs/browse.png)
-
-**Reviewing.** One card, set in a book face, with a hand-drawn rule between
-question and answer. The left margin shows where you are and, once you reveal the
-answer, what the scheduler thinks of the card (recall odds, stability,
-difficulty). Keys are Anki's: space, then 1–4.
-
-![Reviewing: footnotes become margin notes](docs/review.png)
-
-**Everything else.** A command palette on `⌘K`, a contents page laid out like the
-front of a book, an almanac of statistics, a LaTeX preamble for your own macros
-(`\R`, `\norm{x}` and friends come predefined), light and dark themes, and `?`
-for the list of shortcuts.
-
-## Where things are kept
-
-Everything lives in one folder: `data/collection.anki2` (an Anki-format SQLite
-database holding notes, cards and review history) and `data/collection.media/`
-(your images). Back up `data/` and you have backed up everything. Fields are
-stored as rendered HTML with the Markdown source alongside, so the Markdown you
-typed is always what you get back in the editor.
+**Also:** statistics (review heatmap, forecast, card counts, time of day),
+LaTeX macros shared by every card, light and dark themes, a `⌘K` command
+menu, and `?` for keyboard shortcuts.
 
 ## Running it
 
@@ -91,13 +57,14 @@ cd ..
 .venv/bin/python -m better_anki          # http://127.0.0.1:8000
 ```
 
-On first run this creates `data/collection.anki2` with a small demo collection:
-a "Start here" deck that explains the app, and some linear algebra, analysis,
-probability and algorithms cards.
+The first run creates a small demo collection (a few maths and computer
+science decks). Delete the decks whenever you like, or start empty with
+`BETTER_ANKI_NO_DEMO=1`.
 
-Delete the demo decks whenever you like (each deck's ⋯ menu), or start empty
-with `BETTER_ANKI_NO_DEMO=1`. To keep a collection somewhere else, pass
-`--collection path/to/collection.anki2`.
+Everything is stored in `data/`: `collection.anki2` holds notes, cards and
+review history, and `collection.media/` holds images. Back up that folder to
+back up everything. `--collection path/to/collection.anki2` uses a different
+location.
 
 ### Developing
 
@@ -112,14 +79,14 @@ Tests: `.venv/bin/python -m pytest backend` and `cd frontend && npm test`.
 
 ```
 backend/better_anki/
-  fields.py       Markdown rendering (maths, footnotes, image sizes) and field storage
-  search.py       search shorthands on top of Anki's query language
+  fields.py       Markdown rendering (maths, image sizes) and field storage
+  search.py       plain-text search and sidebar filters
   store.py        the single open collection, behind a lock
   seed.py         the demo collection
-  routes/         decks, review, browse/search, notes, stats, media and settings
+  routes/         decks, review, browse, notes, stats, media and settings
 frontend/src/
-  editor/         CodeMirror 6 live preview: maths, marks, clozes, footnotes
-  pages/          Contents, Review, Browse, Write, Almanac, Settings
-  components/     search box, card panel, hand-drawn sketches (rough.js), charts
-  lib/            KaTeX rendering, query parsing and completion, small stores
+  editor/         CodeMirror 6 live preview for maths, formatting, clozes, images
+  pages/          Decks, DeckOverview, Review, Add, Browse, Stats, Settings
+  components/     card editor, card info, charts, command menu
+  lib/            KaTeX rendering, API stores, keyboard handling
 ```

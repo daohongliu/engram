@@ -129,7 +129,8 @@ def memory_from_data(data: str) -> dict[str, Any] | None:
     decay = blob.get("decay") or 0.5
     out: dict[str, Any] = {
         "stability": round(stability, 2),
-        "difficulty": round(difficulty, 2) if difficulty is not None else None,
+        # FSRS stores difficulty on a 1–10 scale; report it as 0–1, as Anki's UI does.
+        "difficulty": round((difficulty - 1) / 9, 3) if difficulty is not None else None,
         "retrievability": None,
     }
     lrt = blob.get("lrt")

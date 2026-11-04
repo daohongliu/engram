@@ -30,14 +30,6 @@ export function days(d: number) {
   return `${(d / 365).toFixed(1).replace(/\.0$/, "")}y`;
 }
 
-export function greeting(date = new Date()) {
-  const h = date.getHours();
-  if (h < 5) return "Burning the midnight oil";
-  if (h < 12) return "Good morning";
-  if (h < 18) return "Good afternoon";
-  if (h < 23) return "Good evening";
-  return "Late night";
-}
 
 /** Old-style numerals look nicer in prose; tabular ones line up in tables. */
 export const fmt = (n: number) => n.toLocaleString();

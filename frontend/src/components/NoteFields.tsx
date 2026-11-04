@@ -10,12 +10,11 @@ export interface FieldValue {
 }
 
 const PLACEHOLDERS: Record<string, string> = {
-  Front: "A question, a prompt, a half-remembered theorem…  ($ starts maths; paste a screenshot to add it)",
-  Back: "The answer. Footnotes[^1] become margin notes.",
-  Text: "Write a sentence and wrap the hidden part with ⌘⇧C, like {{c1::this}}.",
-  "Back Extra": "Anything to show after the answer.",
+  Front: "Question. Type $ for maths, or paste an image.",
+  Back: "Answer",
+  Text: "Text with {{c1::cloze deletions}}. Select text and press ⌘⇧C.",
+  "Back Extra": "Extra information shown with the answer",
 };
-
 export function NoteFields({
   fields,
   onField,
@@ -46,14 +45,6 @@ export function NoteFields({
         <div className="note-field" key={`${idPrefix}-${f.name}-${i}`}>
           <div className="note-field-label">
             <span>{f.name}</span>
-            {f.kind === "html" && (
-              <span
-                className="badge badge-quiet"
-                title="This field was written in Anki's HTML editor. It is shown here as Markdown; it is only rewritten if you change it."
-              >
-                from Anki HTML
-              </span>
-            )}
             <button
               type="button"
               className="field-tool"
@@ -63,7 +54,7 @@ export function NoteFields({
                 picker.current?.click();
               }}
             >
-              + image
+              Add image
             </button>
           </div>
           <MarkdownField

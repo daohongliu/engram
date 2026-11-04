@@ -14,14 +14,28 @@ const CACHE_LIMIT = 800;
 export function setPreamble(preamble: string): string | null {
   const fresh: Record<string, string> = {};
   preambleError = null;
-  const body = preamble
+  const lines = preamble
     .split("\n")
-    .map((line) => line.replace(/(^|[^\\])%.*$/, "$1"))
-    .join("\n");
-  try {
-    katex.renderToString(body, { macros: fresh, globalGroup: true, throwOnError: true });
-  } catch (err) {
-    preambleError = err instanceof Error ? err.message : String(err);
+    .map((line) => line.replace(/(^|[^\\])%.*$/, "$1").trim())
+    .filter(Boolean);
+  // Each line on its own, so one mistake does not lose every macro.
+  // Redefining something KaTeX already has (\R, say) is allowed.
+  for (const line of lines) {
+    const attempt = (src: string) => katex.renderToString(src, { macros: fresh, globalGroup: true, throwOnError: true });
+    try {
+      attempt(line);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (/redefine/.test(msg) && line.includes("\\newcommand")) {
+        try {
+          attempt(line.replace(/\\newcommand/g, "\\renewcommand"));
+          continue;
+        } catch {
+          /* fall through to report */
+        }
+      }
+      preambleError ??= msg.replace(/^KaTeX parse error: /, "");
+    }
   }
   macros = fresh;
   cache.clear();
@@ -71,8 +85,11 @@ const DELIMS: [string, string, boolean][] = [
   ["\\(", "\\)", false],
 ];
 
-/** Find Anki-style \(...\) and \[...\] maths in an element and typeset it. */
-export function typesetElement(root: HTMLElement) {
+/**
+ * Find Anki-style \(...\) and \[...\] maths in an element and typeset it.
+ * With `inline`, display maths is set in text style too (for one-line cells).
+ */
+export function typesetElement(root: HTMLElement, inline = false) {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
     acceptNode(node) {
       let el = node.parentElement;
@@ -85,10 +102,10 @@ export function typesetElement(root: HTMLElement) {
   });
   const nodes: Text[] = [];
   while (walker.nextNode()) nodes.push(walker.currentNode as Text);
-  for (const node of nodes) typesetTextNode(node);
+  for (const node of nodes) typesetTextNode(node, inline);
 }
 
-function typesetTextNode(node: Text) {
+function typesetTextNode(node: Text, inline: boolean) {
   const text = node.nodeValue ?? "";
   const frag = document.createDocumentFragment();
   let i = 0;
@@ -101,9 +118,10 @@ function typesetTextNode(node: Text) {
         const end = text.indexOf(close, i + open.length);
         if (end < 0) continue;
         if (i > last) frag.append(text.slice(last, i));
-        const span = document.createElement(display ? "div" : "span");
-        span.className = display ? "math-block" : "math-inline";
-        span.innerHTML = renderTex(text.slice(i + open.length, end), display);
+        const asBlock = display && !inline;
+        const span = document.createElement(asBlock ? "div" : "span");
+        span.className = asBlock ? "math-block" : "math-inline";
+        span.innerHTML = renderTex(text.slice(i + open.length, end), asBlock);
         frag.append(span);
         i = end + close.length;
         last = i;

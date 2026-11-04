@@ -1,72 +1,82 @@
 import { memo, MouseEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, BulkAction, DeckNode, Row } from "../api";
 import { CardHtml } from "../components/CardHtml";
-import { CardPanel, FlagPicker } from "../components/CardPanel";
+import { CardPanel, FLAG_NAMES } from "../components/CardPanel";
 import { DeckSelect } from "../components/DeckSelect";
-import { SearchBox, SearchBoxHandle } from "../components/SearchBox";
+import { ArrowDown, ArrowUp, Chevron, Close, Search } from "../components/Icons";
 import { plural } from "../lib/format";
 import { useDebounced, useLocalStorage } from "../lib/hooks";
 import { isTyping, useKeys } from "../lib/keys";
-import { hasTerm, quoteIfNeeded, tokenize, toggleTerm } from "../lib/query";
 import { navigate, useLocation } from "../lib/router";
-import { decks as decksStore, invalidate, settings as settingsStore, vocab as vocabStore } from "../lib/store";
+import { decks as decksStore, invalidate, tags as tagsStore } from "../lib/store";
 import { toast } from "../lib/toast";
 import { doneWithUndo, onUndo } from "../lib/undo";
 
-const ORDERS = [
-  { key: "added", label: "date added" },
-  { key: "modified", label: "last edited" },
-  { key: "due", label: "due date" },
-  { key: "interval", label: "interval" },
-  { key: "difficulty", label: "difficulty" },
-  { key: "lapses", label: "lapses" },
-  { key: "reviews", label: "reviews" },
-  { key: "sortfield", label: "alphabetical" },
+const STATES: { key: string; label: string }[] = [
+  { key: "due", label: "Due today" },
+  { key: "new", label: "New" },
+  { key: "learning", label: "Learning" },
+  { key: "review", label: "Review" },
+  { key: "suspended", label: "Suspended" },
+  { key: "buried", label: "Buried" },
+  { key: "flagged", label: "Flagged" },
+  { key: "image", label: "Has image" },
+  { key: "difficult", label: "Difficult" },
+  { key: "forgotten", label: "Forgotten this week" },
+  { key: "added-today", label: "Added today" },
+  { key: "reviewed-today", label: "Reviewed today" },
 ];
 
-const STATES: { term: string; label: string }[] = [
-  { term: "is:due", label: "Due today" },
-  { term: "is:new", label: "New" },
-  { term: "is:learn", label: "Learning" },
-  { term: "is:fragile", label: "Slipping away" },
-  { term: "is:hard", label: "Hard" },
-  { term: "is:flagged", label: "Flagged" },
-  { term: "is:suspended", label: "Suspended" },
-  { term: "has:image", label: "With an image" },
-  { term: "is:fresh", label: "Added today" },
-  { term: "is:today", label: "Reviewed today" },
-  { term: "rated:7:1", label: "Forgotten this week" },
-];
+const COLUMNS = [
+  { key: "sortfield", label: "Question", sort: "sortfield", width: undefined },
+  { key: "answer", label: "Answer", sort: null, width: undefined },
+  { key: "deck", label: "Deck", sort: null, width: 140 },
+  { key: "due", label: "Due", sort: "due", width: 110 },
+  { key: "interval", label: "Interval", sort: "interval", width: 84 },
+  { key: "reviews", label: "Reviews", sort: "reviews", width: 80 },
+  { key: "added", label: "Added", sort: "added", width: 96 },
+] as const;
 
-const PAGE = 60;
+const PAGE = 100;
+
+const EXTRA: string[] = ["interval", "reviews", "added"];
+const colClass = (key: string) => (EXTRA.includes(key) || key === "deck" ? "col-hide-sm" : "");
 
 export function Browse() {
   const { params } = useLocation();
-  const urlQuery = params.get("q") ?? "";
-  const [text, setText] = useState(urlQuery);
-  const query = useDebounced(text, 110);
+  const deck = params.get("deck");
+  const tag = params.get("tag");
+  const state = params.get("state");
+  const urlText = params.get("text") ?? "";
+  const [text, setText] = useState(urlText);
+  const query = useDebounced(text, 120);
   const [order, setOrder] = useLocalStorage("browse.order", "added");
   const [desc, setDesc] = useLocalStorage("browse.desc", true);
   const [rows, setRows] = useState<Row[]>([]);
   const [total, setTotal] = useState(0);
   const [ms, setMs] = useState<number | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [focus, setFocus] = useState<number | null>(null);
+  const [current, setCurrent] = useState<number | null>(null);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const anchor = useRef<number | null>(null);
   const seq = useRef(0);
-  const search = useRef<SearchBoxHandle>(null);
-  const listRef = useRef<HTMLOListElement>(null);
-  const sentinel = useRef<HTMLDivElement>(null);
+  const searchInput = useRef<HTMLInputElement>(null);
+  const tbody = useRef<HTMLTableSectionElement>(null);
+  const sentinel = useRef<HTMLTableRowElement>(null);
   const deckData = decksStore.use();
-  const vocab = vocabStore.use();
-  const settings = settingsStore.use();
+  const allTags = tagsStore.use();
 
-  // Follow the URL when it changes from elsewhere (e.g. a tag link).
-  useEffect(() => setText(urlQuery), [urlQuery]);
+  const setParam = (key: string, value: string | null) => {
+    const next = new URLSearchParams(params);
+    if (value) next.set(key, value);
+    else next.delete(key);
+    const qs = next.toString();
+    navigate(qs ? `/browse?${qs}` : "/browse", { replace: true });
+  };
+
+  useEffect(() => setText(urlText), [urlText]);
   useEffect(() => {
-    if (query !== urlQuery) navigate(query ? `/browse?q=${encodeURIComponent(query)}` : "/browse", { replace: true });
+    if (query !== urlText) setParam("text", query || null);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query]);
 
@@ -74,19 +84,17 @@ export function Browse() {
     async (offset: number, limit = PAGE) => {
       const id = ++seq.current;
       setLoading(true);
-      const r = await api.search(query, order, desc, offset, limit);
-      if (id !== seq.current) return;
-      setLoading(false);
-      if (!r.ok) {
-        setError(r.error);
-        return;
+      try {
+        const r = await api.search({ text: query, deck, tag, state, order, desc, offset, limit });
+        if (id !== seq.current) return;
+        setTotal(r.total);
+        setMs(r.ms);
+        setRows((prev) => (offset === 0 ? r.rows : [...prev, ...r.rows]));
+      } finally {
+        if (id === seq.current) setLoading(false);
       }
-      setError(null);
-      setTotal(r.total);
-      setMs(r.ms);
-      setRows((prev) => (offset === 0 ? r.rows : [...prev, ...r.rows]));
     },
-    [query, order, desc],
+    [query, deck, tag, state, order, desc],
   );
 
   useEffect(() => {
@@ -97,7 +105,6 @@ export function Browse() {
   const refreshAll = useCallback(() => fetchRows(0, Math.max(PAGE, rows.length)), [fetchRows, rows.length]);
   useEffect(() => onUndo(() => void refreshAll()), [refreshAll]);
 
-  // Infinite scroll.
   useEffect(() => {
     const el = sentinel.current;
     if (!el) return;
@@ -108,34 +115,32 @@ export function Browse() {
     return () => io.disconnect();
   }, [rows.length, total, loading, fetchRows]);
 
-  const focusIndex = rows.findIndex((r) => r.id === focus);
-
   const refreshRow = useCallback(
-    async (cardId: number, structural?: boolean) => {
-      if (structural) {
-        setFocus(null);
+    async (cardId: number, removed?: boolean) => {
+      if (removed) {
+        setCurrent(null);
         void refreshAll();
         return;
       }
-      const r = await api.search(`cid:${cardId}`, "added", true, 0, 1);
-      if (r.ok && r.rows[0]) setRows((prev) => prev.map((row) => (row.id === cardId ? r.rows[0] : row)));
+      const r = await api.search({ cid: cardId, limit: 1 });
+      if (r.rows[0]) setRows((prev) => prev.map((row) => (row.id === cardId ? r.rows[0] : row)));
       invalidate();
     },
     [refreshAll],
   );
 
-  const select = (e: MouseEvent, index: number) => {
+  const currentIndex = rows.findIndex((r) => r.id === current);
+
+  const onRowClick = (e: MouseEvent, index: number) => {
     const id = rows[index].id;
     if (e.shiftKey && anchor.current !== null) {
       const a = rows.findIndex((r) => r.id === anchor.current);
       const [lo, hi] = a < index ? [a, index] : [index, a];
-      const next = new Set(selected);
-      for (let i = lo; i <= hi; i++) next.add(rows[i].id);
-      setSelected(next);
+      setSelected(new Set(rows.slice(lo, hi + 1).map((r) => r.id)));
       return;
     }
     if (e.metaKey || e.ctrlKey) {
-      const next = new Set(selected);
+      const next = new Set(selected.size ? selected : current !== null ? [current] : []);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       setSelected(next);
@@ -143,25 +148,33 @@ export function Browse() {
       return;
     }
     anchor.current = id;
-    setFocus(id);
+    setSelected(new Set());
+    setCurrent(id);
   };
 
   const move = (delta: number) => {
     if (!rows.length) return;
-    const i = focusIndex < 0 ? 0 : Math.min(rows.length - 1, Math.max(0, focusIndex + delta));
-    setFocus(rows[i].id);
+    const i = currentIndex < 0 ? 0 : Math.min(rows.length - 1, Math.max(0, currentIndex + delta));
+    setCurrent(rows[i].id);
     anchor.current = rows[i].id;
-    listRef.current?.children[i]?.scrollIntoView({ block: "nearest" });
+    setSelected(new Set());
+    tbody.current?.children[i]?.scrollIntoView({ block: "nearest" });
   };
 
   useKeys((e) => {
     if (e.key === "/" && !isTyping(e)) {
-      search.current?.focus();
+      searchInput.current?.focus();
+      searchInput.current?.select();
       return true;
     }
     if (isTyping(e)) {
-      if (e.key === "Escape" && (e.target as HTMLElement).closest(".card-panel")) {
+      if (e.key === "Escape") {
         (document.activeElement as HTMLElement | null)?.blur();
+        return true;
+      }
+      if (e.target === searchInput.current && (e.key === "ArrowDown" || e.key === "Enter")) {
+        searchInput.current?.blur();
+        move(currentIndex < 0 ? 0 : 1);
         return true;
       }
       return;
@@ -171,42 +184,23 @@ export function Browse() {
       return true;
     }
     if (e.metaKey || e.ctrlKey || e.altKey) return;
-    switch (e.key) {
-      case "j":
-      case "ArrowDown":
-        move(1);
-        return true;
-      case "k":
-      case "ArrowUp":
-        move(-1);
-        return true;
-      case "x":
-        if (focus !== null) {
-          const next = new Set(selected);
-          if (next.has(focus)) next.delete(focus);
-          else next.add(focus);
-          setSelected(next);
-        }
-        return true;
-      case "Enter":
-        document.querySelector<HTMLElement>(".card-panel .cm-content")?.focus();
-        return true;
-      case "Escape":
-        if (selected.size) setSelected(new Set());
-        else setFocus(null);
-        return true;
-      case "s": {
-        const row = rows[focusIndex];
-        if (row) void runBulk([row.id], row.due.state === "suspended" ? "unsuspend" : "suspend");
-        return true;
-      }
+    if (e.key === "ArrowDown" || e.key === "j") return move(1), true;
+    if (e.key === "ArrowUp" || e.key === "k") return move(-1), true;
+    if (e.key === "Enter") {
+      document.querySelector<HTMLElement>(".editor-pane .cm-content")?.focus();
+      return true;
+    }
+    if (e.key === "Escape") {
+      if (selected.size) setSelected(new Set());
+      else setCurrent(null);
+      return true;
     }
   });
 
   const runBulk = async (ids: number[], action: BulkAction, extra: Record<string, unknown> = {}) => {
     try {
       const r = await api.bulk(ids, action, extra);
-      const what: Record<BulkAction, string> = {
+      const verb: Record<BulkAction, string> = {
         suspend: "Suspended",
         unsuspend: "Unsuspended",
         bury: "Buried",
@@ -219,272 +213,315 @@ export function Browse() {
         forget: "Reset",
         setDue: "Rescheduled",
       };
-      doneWithUndo(`${what[action]} ${plural(r.count, "card")}.`);
+      doneWithUndo(`${verb[action]} ${plural(r.count, "card")}.`);
       invalidate();
-      if (action === "delete") setFocus(null);
+      if (action === "delete") setCurrent(null);
+      setSelected(new Set());
       void refreshAll();
     } catch (err) {
       toast.error((err as Error).message);
     }
   };
 
-  const setDeckFilter = (fullName: string) => {
-    const deckTerm = quoteIfNeeded(`deck:${fullName}`);
-    const kept = tokenize(text)
-      .filter((t) => !/^-?"?(deck:|@)/i.test(t.raw))
-      .map((t) => t.raw)
-      .join(" ");
-    const current = tokenize(text).find((t) => t.raw.toLowerCase() === deckTerm.toLowerCase());
-    setText(current ? kept : `${deckTerm} ${kept}`.trim());
+  const sortBy = (key: string) => {
+    if (order === key) setDesc(!desc);
+    else {
+      setOrder(key);
+      setDesc(key === "added" || key === "reviews" || key === "interval");
+    }
   };
 
-  const saveSearch = async () => {
-    const name = window.prompt("Name this search", text.slice(0, 40));
-    if (!name || !settings) return;
-    await api.saveSettings({ savedSearches: [...settings.savedSearches, { name, query: text }] });
-    void settingsStore.refresh();
-    toast.success(`Saved “${name}” to your shelf.`);
-  };
-
-  const removeSaved = async (i: number) => {
-    if (!settings) return;
-    await api.saveSettings({ savedSearches: settings.savedSearches.filter((_, j) => j !== i) });
-    void settingsStore.refresh();
-  };
+  const filters = [
+    deck && { key: "deck", label: deck.split("::").join(" › ") },
+    tag && { key: "tag", label: `Tag: ${tag}` },
+    state && { key: "state", label: STATES.find((s) => s.key === state)?.label ?? state },
+  ].filter(Boolean) as { key: string; label: string }[];
 
   const selectedIds = useMemo(() => [...selected], [selected]);
+  const compact = current !== null;
+  const columns = compact ? COLUMNS.filter((c) => !EXTRA.includes(c.key)) : COLUMNS;
 
   return (
-    <div className={`browse ${focus !== null ? "has-panel" : ""}`}>
-      <aside className="facets" aria-label="Filters">
-        <section>
-          <h3 className="smallcaps">Shelf</h3>
-          <ul className="facet-list">
-            {(settings?.savedSearches ?? []).map((s, i) => (
-              <li key={s.name + i} className={text.trim() === s.query ? "on" : ""}>
-                <button onClick={() => setText(text.trim() === s.query ? "" : s.query)} title={s.query}>
-                  {s.name}
-                </button>
-                <button className="facet-x" onClick={() => void removeSaved(i)} aria-label={`Remove ${s.name}`}>
-                  ×
-                </button>
-              </li>
-            ))}
-          </ul>
-        </section>
-        <section>
-          <h3 className="smallcaps">State</h3>
-          <ul className="facet-list">
-            {STATES.map((s) => (
-              <li key={s.term} className={hasTerm(text, s.term) ? "on" : ""}>
-                <button onClick={() => setText(toggleTerm(text, s.term))}>{s.label}</button>
-              </li>
-            ))}
-          </ul>
-        </section>
-        <section>
-          <h3 className="smallcaps">Decks</h3>
-          <DeckFacet nodes={deckData?.decks ?? []} text={text} onPick={setDeckFilter} />
-        </section>
-        <section>
-          <h3 className="smallcaps">Tags</h3>
-          <ul className="facet-list facet-tags">
-            {(vocab?.tags ?? []).map((t) => (
-              <li key={t} className={hasTerm(text, "#" + t) ? "on" : ""}>
-                <button onClick={() => setText(toggleTerm(text, "#" + quoteIfNeeded(t)))}>#{t}</button>
-              </li>
-            ))}
-            {vocab && !vocab.tags.length && <li className="margin-quiet">No tags yet.</li>}
-          </ul>
-        </section>
+    <div className={`browse ${current !== null ? "has-editor" : ""}`}>
+      <aside className="sidebar" aria-label="Filters">
+        <div className="sidebar-section">
+          <button className={`side-item ${!deck && !tag && !state ? "on" : ""}`} onClick={() => navigate(text ? `/browse?text=${encodeURIComponent(text)}` : "/browse", { replace: true })}>
+            <span className="grow">All cards</span>
+          </button>
+        </div>
+        <div className="sidebar-section">
+          <span className="label">Cards</span>
+          {STATES.map((s) => (
+            <button key={s.key} className={`side-item ${state === s.key ? "on" : ""}`} onClick={() => setParam("state", state === s.key ? null : s.key)}>
+              <span className="grow">{s.label}</span>
+            </button>
+          ))}
+        </div>
+        <div className="sidebar-section">
+          <span className="label">Decks</span>
+          <DeckTree nodes={deckData?.decks ?? []} active={deck} onPick={(name) => setParam("deck", deck === name ? null : name)} />
+        </div>
+        <div className="sidebar-section">
+          <span className="label">Tags</span>
+          {(allTags ?? []).map((t) => (
+            <button key={t.name} className={`side-item ${tag === t.name ? "on" : ""}`} onClick={() => setParam("tag", tag === t.name ? null : t.name)}>
+              <span className="grow">{t.name}</span>
+              <span className="count">{t.notes}</span>
+            </button>
+          ))}
+          {allTags && !allTags.length && <p className="muted" style={{ padding: "0 10px", fontSize: 12 }}>No tags</p>}
+        </div>
       </aside>
 
-      <section className="results" aria-label="Cards">
-        <SearchBox
-          ref={search}
-          value={text}
-          onChange={setText}
-          error={error}
-          onSubmit={() => rows[0] && (setFocus(rows[0].id), listRef.current?.focus())}
-          extra={
-            text.trim() && !settings?.savedSearches.some((s) => s.query === text.trim()) ? (
-              <button className="search-save" onClick={() => void saveSearch()} title="Keep this search on your shelf">
-                ☆
+      <section className="results">
+        <div className="results-toolbar">
+          <div className="search">
+            <Search />
+            <input
+              ref={searchInput}
+              className="input"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Search cards"
+              spellCheck={false}
+              aria-label="Search cards"
+            />
+          </div>
+          {filters.map((f) => (
+            <span key={f.key} className="filter-chip">
+              {f.label}
+              <button onClick={() => setParam(f.key, null)} aria-label={`Remove filter ${f.label}`}>
+                <Close width={12} height={12} />
               </button>
-            ) : null
-          }
-        />
-        <div className="results-meta">
-          <span>
+            </span>
+          ))}
+          <span className="results-meta">
             {plural(total, "card")}
-            {ms !== null && <span className="results-ms"> · {ms < 1 ? "<1" : Math.round(ms)} ms</span>}
+            {ms !== null && <span>· {ms < 1 ? "<1" : Math.round(ms)} ms</span>}
           </span>
-          <label className="sort">
-            sorted by
-            <select value={order} onChange={(e) => setOrder(e.target.value)}>
-              {ORDERS.map((o) => (
-                <option key={o.key} value={o.key}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-            <button className="icon-button" onClick={() => setDesc(!desc)} title={desc ? "Descending" : "Ascending"}>
-              {desc ? "↓" : "↑"}
-            </button>
-          </label>
         </div>
 
-        <ol className="result-list" ref={listRef} tabIndex={-1}>
-          {rows.map((row, i) => (
-            <ResultRow
-              key={row.id}
-              row={row}
-              focused={row.id === focus}
-              selected={selected.has(row.id)}
-              onClick={(e) => select(e, i)}
-              onToggle={() => {
-                const next = new Set(selected);
-                if (next.has(row.id)) next.delete(row.id);
-                else next.add(row.id);
-                setSelected(next);
-                anchor.current = row.id;
-              }}
-            />
-          ))}
-        </ol>
-        <div ref={sentinel} className="sentinel" />
-        {!loading && !error && rows.length === 0 && (
-          <div className="empty">
-            <p>No cards match.</p>
-            <p className="margin-quiet">Even Ebbinghaus forgot things sometimes. Try removing a clause above.</p>
-          </div>
-        )}
+        {selected.size > 0 && <BulkToolbar ids={selectedIds} onRun={runBulk} onClear={() => setSelected(new Set())} />}
 
-        {selected.size > 0 && (
-          <BulkBar ids={selectedIds} onRun={runBulk} onClear={() => setSelected(new Set())} />
-        )}
+        <div className="table-wrap">
+          <table className="card-table">
+            <colgroup>
+              <col style={{ width: 40 }} />
+              {columns.map((c) => (
+                <col key={c.key} className={colClass(c.key)} style={c.width ? { width: c.width } : undefined} />
+              ))}
+            </colgroup>
+            <thead>
+              <tr>
+                <th className="col-check">
+                  <input
+                    type="checkbox"
+                    aria-label="Select all"
+                    checked={rows.length > 0 && selected.size === rows.length}
+                    onChange={(e) => setSelected(e.target.checked ? new Set(rows.map((r) => r.id)) : new Set())}
+                  />
+                </th>
+                {columns.map((c) => (
+                  <th
+                    key={c.key}
+                    className={`${c.sort ? "sortable" : ""} ${c.sort === order ? "sorted" : ""} ${colClass(c.key)}`}
+                    onClick={c.sort ? () => sortBy(c.sort!) : undefined}
+                  >
+                    {c.label}{" "}
+                    {c.sort === order && (desc ? <ArrowDown width={11} height={11} /> : <ArrowUp width={11} height={11} />)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody ref={tbody}>
+              {rows.map((row, i) => (
+                <ResultRow
+                  key={row.id}
+                  row={row}
+                  current={row.id === current}
+                  compact={compact}
+                  selected={selected.has(row.id)}
+                  onClick={(e) => onRowClick(e, i)}
+                  onToggle={() => {
+                    const next = new Set(selected);
+                    if (next.has(row.id)) next.delete(row.id);
+                    else next.add(row.id);
+                    setSelected(next);
+                    anchor.current = row.id;
+                  }}
+                />
+              ))}
+              <tr ref={sentinel} />
+            </tbody>
+          </table>
+          {!loading && rows.length === 0 && (
+            <div className="empty-state">
+              <h2>No matching cards</h2>
+              <p>{text || filters.length ? "Try fewer words or remove a filter." : "Add some cards to see them here."}</p>
+            </div>
+          )}
+          {rows.length > 0 && rows.length >= total && total > 20 && <div className="table-foot">{plural(total, "card")}</div>}
+        </div>
       </section>
 
-      {focus !== null && <CardPanel key="panel" cardId={focus} onChanged={refreshRow} onClose={() => setFocus(null)} />}
+      {current !== null && <CardPanel cardId={current} onChanged={refreshRow} onClose={() => setCurrent(null)} />}
     </div>
   );
 }
 
 const ResultRow = memo(function ResultRow({
   row,
-  focused,
+  current,
+  compact,
   selected,
   onClick,
   onToggle,
 }: {
   row: Row;
-  focused: boolean;
+  current: boolean;
+  compact: boolean;
   selected: boolean;
   onClick: (e: MouseEvent) => void;
   onToggle: () => void;
 }) {
-  const r = row.memory?.retrievability;
-  const deckLeaf = row.deck.split("::").slice(-1)[0];
+  const suspended = row.due.state === "suspended";
+  const dueText = suspended ? "Suspended" : row.due.state === "buried" ? "Buried" : row.due.label === "new" ? "New" : row.due.label;
   return (
-    <li
-      className={`result ${focused ? "is-focused" : ""} ${selected ? "is-selected" : ""} state-${row.due.state}`}
-      onClick={onClick}
-      aria-selected={focused}
-    >
-      <input
-        type="checkbox"
-        className="result-check"
-        checked={selected}
-        onChange={onToggle}
-        onClick={(e) => e.stopPropagation()}
-        aria-label="Select card"
-      />
-      <div className="result-body">
-        <CardHtml html={row.question} className="result-q" />
-        {row.answer && <CardHtml html={row.answer} className="result-a" />}
-        <div className="result-meta">
-          {row.flag > 0 && <span className={`flag-dot flag-${row.flag} on small`} />}
-          <span className="result-deck" title={row.deck}>
-            {deckLeaf}
-          </span>
-          <span className={`result-due due-${row.due.state}`}>
-            {row.due.state === "suspended" ? "suspended" : row.due.state === "buried" ? "buried" : row.due.label}
-          </span>
-          {r != null && (
-            <span className="result-recall" title={`Recall odds now: ${Math.round(r * 100)}%`}>
-              <span className="mini-gauge">
-                <span style={{ width: `${Math.round(r * 100)}%` }} className={r < 0.8 ? "low" : ""} />
-              </span>
-            </span>
-          )}
-          {row.tags.slice(0, 3).map((t) => (
-            <span key={t} className="result-tag">
-              #{t}
-            </span>
-          ))}
-          {row.tags.length > 3 && <span className="result-tag">+{row.tags.length - 3}</span>}
+    <tr className={`${current ? "is-current" : ""} ${selected ? "is-selected" : ""} ${suspended ? "is-suspended" : ""}`} onClick={onClick}>
+      <td className="col-check" onClick={(e) => e.stopPropagation()}>
+        <input type="checkbox" checked={selected} onChange={onToggle} aria-label="Select card" />
+      </td>
+      <td>
+        <div className="cell-html">
+          {row.flag > 0 && <span className="cell-flag" style={{ ["--c" as string]: `var(--flag-${row.flag})` }} title={`${FLAG_NAMES[row.flag]} flag`} />}
+          <CardHtml html={row.question} inline />
         </div>
-      </div>
-    </li>
+      </td>
+      <td>
+        <div className="cell-html cell-answer">
+          <CardHtml html={row.answer} inline />
+        </div>
+      </td>
+      <td className="cell-muted col-hide-sm" title={row.deck}>
+        {row.deck.split("::").slice(-1)[0]}
+      </td>
+      <td className={row.due.days !== null && row.due.days < 0 ? "c-learn" : "cell-muted"}>{dueText}</td>
+      {!compact && (
+        <>
+          <td className="cell-muted num col-hide-sm">{row.interval > 0 ? `${row.interval}d` : "—"}</td>
+          <td className="cell-muted num col-hide-sm">{row.reps}</td>
+          <td className="cell-muted num col-hide-sm">{new Date(row.id).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "2-digit" })}</td>
+        </>
+      )}
+    </tr>
   );
 });
 
-function DeckFacet({ nodes, text, onPick, depth = 0 }: { nodes: DeckNode[]; text: string; onPick: (n: string) => void; depth?: number }) {
+function DeckTree({ nodes, active, onPick, depth = 0 }: { nodes: DeckNode[]; active: string | null; onPick: (n: string) => void; depth?: number }) {
+  const [closed, setClosed] = useState<Set<number>>(new Set());
   return (
-    <ul className={`facet-list facet-decks depth-${depth}`}>
+    <div className={depth ? "side-children" : ""}>
       {nodes.map((d) => (
-        <li key={d.id} className={hasTerm(text, quoteIfNeeded(`deck:${d.fullName}`)) ? "on" : ""}>
-          <button onClick={() => onPick(d.fullName)}>
-            {d.name}
-            <span className="facet-count">{d.total}</span>
+        <div key={d.id}>
+          <button className={`side-item ${active === d.fullName ? "on" : ""}`} onClick={() => onPick(d.fullName)}>
+            {d.children.length ? (
+              <span
+                className={`deck-toggle ${closed.has(d.id) ? "" : "open"}`}
+                style={{ width: 16, height: 16, marginLeft: -6 }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const next = new Set(closed);
+                  if (next.has(d.id)) next.delete(d.id);
+                  else next.add(d.id);
+                  setClosed(next);
+                }}
+              >
+                <Chevron width={10} height={10} />
+              </span>
+            ) : (
+              <span style={{ width: 10 }} />
+            )}
+            <span className="grow">{d.name}</span>
+            <span className="count">{d.total}</span>
           </button>
-          {d.children.length > 0 && <DeckFacet nodes={d.children} text={text} onPick={onPick} depth={depth + 1} />}
-        </li>
+          {d.children.length > 0 && !closed.has(d.id) && <DeckTree nodes={d.children} active={active} onPick={onPick} depth={depth + 1} />}
+        </div>
       ))}
-    </ul>
+    </div>
   );
 }
 
-function BulkBar({ ids, onRun, onClear }: { ids: number[]; onRun: (ids: number[], a: BulkAction, extra?: Record<string, unknown>) => Promise<void>; onClear: () => void }) {
-  const [mode, setMode] = useState<null | "move" | "tag" | "untag" | "flag">(null);
-  const [tagText, setTagText] = useState("");
+function BulkToolbar({ ids, onRun, onClear }: { ids: number[]; onRun: (ids: number[], a: BulkAction, extra?: Record<string, unknown>) => Promise<void>; onClear: () => void }) {
+  const [mode, setMode] = useState<null | "move" | "tag" | "untag">(null);
+  const [value, setValue] = useState("");
   const run = async (a: BulkAction, extra?: Record<string, unknown>) => {
     await onRun(ids, a, extra);
     setMode(null);
-    setTagText("");
+    setValue("");
   };
   return (
-    <div className="bulkbar" role="toolbar" aria-label="Selected cards">
-      <span className="bulk-count">{plural(ids.length, "card")} selected</span>
+    <div className="bulk-toolbar" role="toolbar" aria-label="Selected cards">
+      <strong>{plural(ids.length, "card")} selected</strong>
       {mode === "move" ? (
-        <DeckSelect value={null} label="to" onChange={(id) => void run("move", { deckId: id })} />
-      ) : mode === "tag" || mode === "untag" ? (
+        <>
+          <DeckSelect value={null} onChange={(id) => void run("move", { deckId: id })} />
+          <button className="btn btn-ghost btn-sm" onClick={() => setMode(null)}>
+            Cancel
+          </button>
+        </>
+      ) : mode ? (
         <form
+          style={{ display: "flex", gap: 4 }}
           onSubmit={(e) => {
             e.preventDefault();
-            if (tagText.trim()) void run(mode === "tag" ? "addTags" : "removeTags", { tags: tagText.trim() });
+            if (value.trim()) void run(mode === "tag" ? "addTags" : "removeTags", { tags: value.trim() });
           }}
         >
-          <input autoFocus value={tagText} onChange={(e) => setTagText(e.target.value)} placeholder={mode === "tag" ? "tags to add" : "tags to remove"} />
+          <input className="input" autoFocus value={value} onChange={(e) => setValue(e.target.value)} placeholder={mode === "tag" ? "Tags to add" : "Tags to remove"} />
+          <button className="btn btn-sm btn-primary" type="submit">
+            {mode === "tag" ? "Add" : "Remove"}
+          </button>
+          <button className="btn btn-ghost btn-sm" type="button" onClick={() => setMode(null)}>
+            Cancel
+          </button>
         </form>
-      ) : mode === "flag" ? (
-        <FlagPicker value={-1} onChange={(f) => void run("flag", { flag: f })} />
       ) : (
         <>
-          <button onClick={() => setMode("move")}>Move…</button>
-          <button onClick={() => setMode("tag")}>Tag…</button>
-          <button onClick={() => setMode("untag")}>Untag…</button>
-          <button onClick={() => setMode("flag")}>Flag…</button>
-          <button onClick={() => void run("suspend")}>Suspend</button>
-          <button onClick={() => void run("unsuspend")}>Unsuspend</button>
-          <button onClick={() => void run("forget")}>Forget</button>
-          <button className="danger" onClick={() => void run("delete")}>
+          <button className="btn btn-ghost btn-sm" onClick={() => setMode("move")}>
+            Change deck
+          </button>
+          <button className="btn btn-ghost btn-sm" onClick={() => setMode("tag")}>
+            Add tags
+          </button>
+          <button className="btn btn-ghost btn-sm" onClick={() => setMode("untag")}>
+            Remove tags
+          </button>
+          <button className="btn btn-ghost btn-sm" onClick={() => void run("suspend")}>
+            Suspend
+          </button>
+          <button className="btn btn-ghost btn-sm" onClick={() => void run("unsuspend")}>
+            Unsuspend
+          </button>
+          <select className="select" value="" onChange={(e) => void run("flag", { flag: Number(e.target.value) })} aria-label="Flag">
+            <option value="" disabled>
+              Flag…
+            </option>
+            {FLAG_NAMES.map((n, i) => (
+              <option key={n} value={i}>
+                {n}
+              </option>
+            ))}
+          </select>
+          <button className="btn btn-ghost btn-sm" onClick={() => void run("forget")}>
+            Reset to new
+          </button>
+          <button className="btn btn-ghost btn-sm btn-danger" onClick={() => void run("delete")}>
             Delete
           </button>
         </>
       )}
-      <button className="bulk-clear" onClick={mode ? () => setMode(null) : onClear}>
-        {mode ? "back" : "clear"}
+      <button className="btn btn-ghost btn-sm" style={{ marginLeft: "auto" }} onClick={onClear}>
+        Clear selection
       </button>
     </div>
   );

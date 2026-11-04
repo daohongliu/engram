@@ -1,14 +1,14 @@
 import { KeyboardEvent, useMemo, useState } from "react";
-import { rank } from "../lib/query";
-import { vocab } from "../lib/store";
+import { rank } from "../lib/fuzzy";
+import { tags as tagsStore } from "../lib/store";
 
 export function TagInput({ tags, onChange }: { tags: string[]; onChange: (tags: string[]) => void }) {
-  const v = vocab.use();
+  const all = tagsStore.use();
   const [draft, setDraft] = useState("");
   const [active, setActive] = useState(0);
   const suggestions = useMemo(
-    () => (draft ? rank((v?.tags ?? []).filter((t) => !tags.includes(t)), draft, (t) => t, 6) : []),
-    [draft, v, tags],
+    () => (draft ? rank((all ?? []).map((t) => t.name).filter((t) => !tags.includes(t)), draft, (t) => t, 6) : []),
+    [draft, all, tags],
   );
 
   const commit = (text: string) => {
@@ -41,7 +41,7 @@ export function TagInput({ tags, onChange }: { tags: string[]; onChange: (tags: 
     <div className="tag-input">
       {tags.map((t) => (
         <span key={t} className="tag-chip">
-          #{t}
+          {t}
           <button aria-label={`Remove tag ${t}`} onClick={() => onChange(tags.filter((x) => x !== t))}>
             ×
           </button>
@@ -50,7 +50,7 @@ export function TagInput({ tags, onChange }: { tags: string[]; onChange: (tags: 
       <div className="tag-input-box">
         <input
           value={draft}
-          placeholder={tags.length ? "" : "add tags…"}
+          placeholder={tags.length ? "" : "Add tags"}
           onChange={(e) => {
             setDraft(e.target.value);
             setActive(0);
@@ -70,7 +70,7 @@ export function TagInput({ tags, onChange }: { tags: string[]; onChange: (tags: 
                   commit(s);
                 }}
               >
-                #{s}
+                {s}
               </li>
             ))}
           </ul>

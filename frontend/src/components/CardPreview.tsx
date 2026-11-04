@@ -5,11 +5,11 @@ import { CardHtml } from "./CardHtml";
 
 type Previewed = { label: string; question: string; answer: string };
 
-/** The cards a note will produce, rendered by Anki's own template engine. */
+/** The cards a note will produce, rendered by Anki's template engine. */
 export function CardPreview({ notetypeId, fields }: { notetypeId: number | null; fields: string[] }) {
-  const debounced = useDebounced(fields, 220);
+  const debounced = useDebounced(fields, 200);
   const [cards, setCards] = useState<Previewed[]>([]);
-  const [flipped, setFlipped] = useState<Record<number, boolean>>({});
+  const [back, setBack] = useState<Record<number, boolean>>({});
 
   useEffect(() => {
     if (!notetypeId || !debounced.some((f) => f.trim())) {
@@ -26,20 +26,16 @@ export function CardPreview({ notetypeId, fields }: { notetypeId: number | null;
     };
   }, [notetypeId, debounced]);
 
-  if (!cards.length) return <p className="margin-quiet">Cards appear here as you write.</p>;
+  if (!cards.length) return <p className="muted">Nothing to preview yet.</p>;
   return (
     <div className="preview-stack">
       {cards.map((c, i) => (
-        <button
-          key={c.label + i}
-          className={`index-card ${flipped[i] ? "is-flipped" : ""}`}
-          onClick={() => setFlipped({ ...flipped, [i]: !flipped[i] })}
-          title="Click to turn over"
-        >
-          <span className="index-card-label">
-            {c.label} · {flipped[i] ? "back" : "front"}
+        <button key={c.label + i} className="preview-card" onClick={() => setBack({ ...back, [i]: !back[i] })} title="Click to flip">
+          <span className="preview-card-head">
+            <span>{c.label}</span>
+            <span>{back[i] ? "Back" : "Front"}</span>
           </span>
-          <CardHtml html={flipped[i] ? c.answer : c.question} className="index-card-body" />
+          <CardHtml html={back[i] ? c.answer : c.question} />
         </button>
       ))}
     </div>
