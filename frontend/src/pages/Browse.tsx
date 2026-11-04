@@ -27,20 +27,19 @@ const STATES: { key: string; label: string }[] = [
   { key: "reviewed-today", label: "Reviewed today" },
 ];
 
-const COLUMNS = [
-  { key: "sortfield", label: "Question", sort: "sortfield", width: undefined },
-  { key: "answer", label: "Answer", sort: null, width: undefined },
-  { key: "deck", label: "Deck", sort: null, width: 140 },
-  { key: "due", label: "Due", sort: "due", width: 110 },
-  { key: "interval", label: "Interval", sort: "interval", width: 84 },
-  { key: "reviews", label: "Reviews", sort: "reviews", width: 80 },
-  { key: "added", label: "Added", sort: "added", width: 96 },
-] as const;
+const SORTS = [
+  { key: "added", label: "Date added" },
+  { key: "modified", label: "Last edited" },
+  { key: "due", label: "Due date" },
+  { key: "interval", label: "Interval" },
+  { key: "reviews", label: "Reviews" },
+  { key: "lapses", label: "Lapses" },
+  { key: "difficulty", label: "Difficulty" },
+  { key: "sortfield", label: "Alphabetical" },
+];
 
 const PAGE = 100;
 
-const EXTRA: string[] = ["interval", "reviews", "added"];
-const colClass = (key: string) => (EXTRA.includes(key) || key === "deck" ? "col-hide-sm" : "");
 
 export function Browse() {
   const { params } = useLocation();
@@ -61,8 +60,8 @@ export function Browse() {
   const anchor = useRef<number | null>(null);
   const seq = useRef(0);
   const searchInput = useRef<HTMLInputElement>(null);
-  const tbody = useRef<HTMLTableSectionElement>(null);
-  const sentinel = useRef<HTMLTableRowElement>(null);
+  const list = useRef<HTMLOListElement>(null);
+  const sentinel = useRef<HTMLDivElement>(null);
   const deckData = decksStore.use();
   const allTags = tagsStore.use();
 
@@ -158,7 +157,7 @@ export function Browse() {
     setCurrent(rows[i].id);
     anchor.current = rows[i].id;
     setSelected(new Set());
-    tbody.current?.children[i]?.scrollIntoView({ block: "nearest" });
+    list.current?.children[i]?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   };
 
   useKeys((e) => {
@@ -223,14 +222,6 @@ export function Browse() {
     }
   };
 
-  const sortBy = (key: string) => {
-    if (order === key) setDesc(!desc);
-    else {
-      setOrder(key);
-      setDesc(key === "added" || key === "reviews" || key === "interval");
-    }
-  };
-
   const filters = [
     deck && { key: "deck", label: deck.split("::").join(" › ") },
     tag && { key: "tag", label: `Tag: ${tag}` },
@@ -238,8 +229,15 @@ export function Browse() {
   ].filter(Boolean) as { key: string; label: string }[];
 
   const selectedIds = useMemo(() => [...selected], [selected]);
-  const compact = current !== null;
-  const columns = compact ? COLUMNS.filter((c) => !EXTRA.includes(c.key)) : COLUMNS;
+  const toggle = useCallback((id: number) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+    anchor.current = id;
+  }, []);
 
   return (
     <div className={`browse ${current !== null ? "has-editor" : ""}`}>
@@ -299,68 +297,44 @@ export function Browse() {
             {plural(total, "card")}
             {ms !== null && <span>· {ms < 1 ? "<1" : Math.round(ms)} ms</span>}
           </span>
+          <div className="sort-control">
+            <select className="select" value={order} onChange={(e) => setOrder(e.target.value)} aria-label="Sort by">
+              {SORTS.map((o) => (
+                <option key={o.key} value={o.key}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+            <button className="icon-btn" onClick={() => setDesc(!desc)} title={desc ? "Descending" : "Ascending"} aria-label="Reverse order">
+              {desc ? <ArrowDown /> : <ArrowUp />}
+            </button>
+          </div>
         </div>
 
-        {selected.size > 0 && <BulkToolbar ids={selectedIds} onRun={runBulk} onClear={() => setSelected(new Set())} />}
+        {selected.size > 0 && (
+          <BulkToolbar ids={selectedIds} onRun={runBulk} onClear={() => setSelected(new Set())} onSelectAll={() => setSelected(new Set(rows.map((r) => r.id)))} />
+        )}
 
-        <div className="table-wrap">
-          <table className="card-table">
-            <colgroup>
-              <col style={{ width: 40 }} />
-              {columns.map((c) => (
-                <col key={c.key} className={colClass(c.key)} style={c.width ? { width: c.width } : undefined} />
-              ))}
-            </colgroup>
-            <thead>
-              <tr>
-                <th className="col-check">
-                  <input
-                    type="checkbox"
-                    aria-label="Select all"
-                    checked={rows.length > 0 && selected.size === rows.length}
-                    onChange={(e) => setSelected(e.target.checked ? new Set(rows.map((r) => r.id)) : new Set())}
-                  />
-                </th>
-                {columns.map((c) => (
-                  <th
-                    key={c.key}
-                    className={`${c.sort ? "sortable" : ""} ${c.sort === order ? "sorted" : ""} ${colClass(c.key)}`}
-                    onClick={c.sort ? () => sortBy(c.sort!) : undefined}
-                  >
-                    {c.label}{" "}
-                    {c.sort === order && (desc ? <ArrowDown width={11} height={11} /> : <ArrowUp width={11} height={11} />)}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody ref={tbody}>
-              {rows.map((row, i) => (
-                <ResultRow
-                  key={row.id}
-                  row={row}
-                  current={row.id === current}
-                  compact={compact}
-                  selected={selected.has(row.id)}
-                  onClick={(e) => onRowClick(e, i)}
-                  onToggle={() => {
-                    const next = new Set(selected);
-                    if (next.has(row.id)) next.delete(row.id);
-                    else next.add(row.id);
-                    setSelected(next);
-                    anchor.current = row.id;
-                  }}
-                />
-              ))}
-              <tr ref={sentinel} />
-            </tbody>
-          </table>
+        <div className="result-scroll">
+          <ol className={`result-list ${selected.size ? "is-selecting" : ""}`} ref={list}>
+            {rows.map((row, i) => (
+              <ResultCard
+                key={row.id}
+                row={row}
+                current={row.id === current}
+                selected={selected.has(row.id)}
+                onClick={(e) => onRowClick(e, i)}
+                onToggle={toggle}
+              />
+            ))}
+          </ol>
+          <div ref={sentinel} className="sentinel" />
           {!loading && rows.length === 0 && (
             <div className="empty-state">
               <h2>No matching cards</h2>
               <p>{text || filters.length ? "Try fewer words or remove a filter." : "Add some cards to see them here."}</p>
             </div>
           )}
-          {rows.length > 0 && rows.length >= total && total > 20 && <div className="table-foot">{plural(total, "card")}</div>}
         </div>
       </section>
 
@@ -369,51 +343,58 @@ export function Browse() {
   );
 }
 
-const ResultRow = memo(function ResultRow({
+const ResultCard = memo(function ResultCard({
   row,
   current,
-  compact,
   selected,
   onClick,
   onToggle,
 }: {
   row: Row;
   current: boolean;
-  compact: boolean;
   selected: boolean;
   onClick: (e: MouseEvent) => void;
-  onToggle: () => void;
+  onToggle: (id: number) => void;
 }) {
-  const suspended = row.due.state === "suspended";
-  const dueText = suspended ? "Suspended" : row.due.state === "buried" ? "Buried" : row.due.label === "new" ? "New" : row.due.label;
+  const r = row.memory?.retrievability;
+  const state = row.due.state;
   return (
-    <tr className={`${current ? "is-current" : ""} ${selected ? "is-selected" : ""} ${suspended ? "is-suspended" : ""}`} onClick={onClick}>
-      <td className="col-check" onClick={(e) => e.stopPropagation()}>
-        <input type="checkbox" checked={selected} onChange={onToggle} aria-label="Select card" />
-      </td>
-      <td>
-        <div className="cell-html">
+    <li className={`result ${current ? "is-current" : ""} ${selected ? "is-selected" : ""} state-${state}`} onClick={onClick} aria-selected={current}>
+      <input
+        type="checkbox"
+        className="result-check"
+        checked={selected}
+        onChange={() => onToggle(row.id)}
+        onClick={(e) => e.stopPropagation()}
+        aria-label="Select card"
+      />
+      <div className="result-body">
+        <CardHtml html={row.question} className="result-q" />
+        {row.answer && <CardHtml html={row.answer} className="result-a" inline />}
+        <div className="result-meta">
           {row.flag > 0 && <span className="cell-flag" style={{ ["--c" as string]: `var(--flag-${row.flag})` }} title={`${FLAG_NAMES[row.flag]} flag`} />}
-          <CardHtml html={row.question} inline />
+          <span className="result-deck" title={row.deck}>
+            {row.deck.split("::").slice(-1)[0]}
+          </span>
+          <span className={`result-due due-${state}`}>
+            {state === "suspended" ? "suspended" : state === "buried" ? "buried" : row.due.label}
+          </span>
+          {r != null && (
+            <span title={`Recall odds now: ${Math.round(r * 100)}%`}>
+              <span className="mini-gauge">
+                <span style={{ width: `${Math.round(r * 100)}%` }} className={r < 0.8 ? "low" : ""} />
+              </span>
+            </span>
+          )}
+          {row.tags.slice(0, 3).map((t) => (
+            <span key={t} className="result-tag">
+              #{t}
+            </span>
+          ))}
+          {row.tags.length > 3 && <span className="result-tag">+{row.tags.length - 3}</span>}
         </div>
-      </td>
-      <td>
-        <div className="cell-html cell-answer">
-          <CardHtml html={row.answer} inline />
-        </div>
-      </td>
-      <td className="cell-muted col-hide-sm" title={row.deck}>
-        {row.deck.split("::").slice(-1)[0]}
-      </td>
-      <td className={row.due.days !== null && row.due.days < 0 ? "c-learn" : "cell-muted"}>{dueText}</td>
-      {!compact && (
-        <>
-          <td className="cell-muted num col-hide-sm">{row.interval > 0 ? `${row.interval}d` : "—"}</td>
-          <td className="cell-muted num col-hide-sm">{row.reps}</td>
-          <td className="cell-muted num col-hide-sm">{new Date(row.id).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "2-digit" })}</td>
-        </>
-      )}
-    </tr>
+      </div>
+    </li>
   );
 });
 
@@ -451,7 +432,17 @@ function DeckTree({ nodes, active, onPick, depth = 0 }: { nodes: DeckNode[]; act
   );
 }
 
-function BulkToolbar({ ids, onRun, onClear }: { ids: number[]; onRun: (ids: number[], a: BulkAction, extra?: Record<string, unknown>) => Promise<void>; onClear: () => void }) {
+function BulkToolbar({
+  ids,
+  onRun,
+  onClear,
+  onSelectAll,
+}: {
+  ids: number[];
+  onRun: (ids: number[], a: BulkAction, extra?: Record<string, unknown>) => Promise<void>;
+  onClear: () => void;
+  onSelectAll: () => void;
+}) {
   const [mode, setMode] = useState<null | "move" | "tag" | "untag">(null);
   const [value, setValue] = useState("");
   const run = async (a: BulkAction, extra?: Record<string, unknown>) => {
@@ -520,9 +511,14 @@ function BulkToolbar({ ids, onRun, onClear }: { ids: number[]; onRun: (ids: numb
           </button>
         </>
       )}
-      <button className="btn btn-ghost btn-sm" style={{ marginLeft: "auto" }} onClick={onClear}>
-        Clear selection
-      </button>
+      <span style={{ marginLeft: "auto", display: "flex", gap: 4 }}>
+        <button className="btn btn-ghost btn-sm" onClick={onSelectAll}>
+          Select all
+        </button>
+        <button className="btn btn-ghost btn-sm" onClick={onClear}>
+          Clear
+        </button>
+      </span>
     </div>
   );
 }
