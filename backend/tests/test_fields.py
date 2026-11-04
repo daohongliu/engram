@@ -61,3 +61,9 @@ def test_legacy_html_to_markdown():
 def test_empty_field():
     assert encode_field("   ") == ""
     assert decode_field("").source == ""
+
+
+def test_image_size_syntax():
+    assert render_markdown("![graph|300](g.png)") == '<img src="g.png" width="300" alt="graph">'
+    assert render_markdown("![|300x200](g.png)") == '<img src="g.png" width="300" height="200" alt="">'
+    assert render_markdown("![a|b](g.png)") == '<img src="g.png" alt="a|b">'

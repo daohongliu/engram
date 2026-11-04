@@ -48,8 +48,7 @@ export function SettingsPage() {
           <h2>LaTeX preamble</h2>
           <p>
             Macros defined here work in every card and in the editor’s live preview. Use <code>\newcommand</code> or{" "}
-            <code>\def</code>, one per line. Anki desktop uses MathJax and will not know about these, so keep
-            them to shorthands you could live without on your phone.
+            <code>\def</code>, one per line.
           </p>
           <textarea className="preamble" value={preamble} onChange={(e) => setPre(e.target.value)} spellCheck={false} rows={12} />
           {err && <p className="query-error">Hmm. {err}</p>}
@@ -79,12 +78,12 @@ export function SettingsPage() {
         <section className="settings-section">
           <h2>Collection</h2>
           <p>
-            This server is using <code>{s?.collectionPath}</code>. To open your real Anki collection, quit Anki
-            desktop first (two programs must not write to one collection), then start Better Anki with{" "}
-            <code>--collection path/to/collection.anki2</code>.
+            Your cards live in <code>{s?.collectionPath}</code>, and pictures in{" "}
+            <code>{s?.mediaPath}</code>. Back up that folder and you have backed up everything. Start the
+            server with <code>--collection some/other/collection.anki2</code> to keep a separate collection.
           </p>
           <p>
-            Scheduler: {s?.fsrs ? "FSRS, the modern memory model Anki ships with." : "Anki’s classic SM-2. You can switch to FSRS in Anki desktop’s deck options."}
+            Scheduler: {s?.fsrs ? "FSRS, the modern memory model Anki ships with." : "the classic SM-2 algorithm."}
           </p>
         </section>
       </article>

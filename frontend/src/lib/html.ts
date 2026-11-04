@@ -1,4 +1,5 @@
 import DOMPurify from "dompurify";
+import { mediaUrl } from "../editor/livePreview";
 import { typesetElement } from "./math";
 
 /**
@@ -14,11 +15,19 @@ export function prepareCardHtml(el: HTMLElement, html: string) {
   });
   for (const node of el.querySelectorAll<HTMLElement>("[src]")) {
     const src = node.getAttribute("src") ?? "";
-    if (src && !/^(https?:|data:|blob:|\/)/i.test(src)) {
-      node.setAttribute("src", `/api/media/${encodeURIComponent(src)}`);
-    }
+    if (src) node.setAttribute("src", mediaUrl(src));
   }
-  for (const img of el.querySelectorAll("img")) img.loading = "lazy";
+  for (const img of el.querySelectorAll("img")) {
+    img.loading = "lazy";
+    img.decoding = "async";
+    // An image with a chosen width may shrink on a narrow screen, never grow.
+    const w = img.getAttribute("width");
+    if (w) {
+      img.style.width = `${w}px`;
+      img.removeAttribute("height");
+    }
+    img.addEventListener("error", () => img.classList.add("is-missing"), { once: true });
+  }
   for (const a of el.querySelectorAll<HTMLAnchorElement>("a[href^='http']")) {
     a.target = "_blank";
     a.rel = "noreferrer";

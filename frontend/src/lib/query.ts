@@ -88,6 +88,7 @@ export function describeToken(rawToken: string): { negated: boolean; phrase: str
   const lower = body.toLowerCase();
   if (body.startsWith("#")) return { negated, phrase: `tagged ${pretty(body.slice(1))}` };
   if (body.startsWith("@")) return { negated, phrase: `in a deck like “${pretty(body.slice(1))}”` };
+  if (lower === "has:image") return { negated, phrase: "with an image" };
   const colon = body.indexOf(":");
   if (colon > 0) {
     const key = lower.slice(0, colon);
@@ -207,6 +208,7 @@ export const KEYWORDS: Suggestion[] = [
   { insert: "is:today", label: "is:today", hint: "reviewed today" },
   { insert: "is:fresh", label: "is:fresh", hint: "added today" },
   { insert: "is:leech", label: "is:leech", hint: "keeps being forgotten" },
+  { insert: "has:image", label: "has:image", hint: "cards with a picture" },
   { insert: "added:7", label: "added:7", hint: "added this week" },
   { insert: "rated:1:1", label: "rated:1:1", hint: "forgotten today" },
   { insert: "prop:ivl>=30", label: "prop:ivl>=30", hint: "interval at least a month" },

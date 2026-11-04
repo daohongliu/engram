@@ -45,7 +45,9 @@ const SECTIONS: { title: string; keys: [string, string][] }[] = [
       [`${MOD} ⇧ C`, "new cloze deletion"],
       [`${MOD} ⌥ ⇧ C`, "cloze with the same number"],
       [`${MOD} ↵`, "add the card"],
-      ["paste an image", "uploads it to your media"],
+      ["paste or drop an image", "adds it to the card"],
+      ["drag an image's corner", "resizes it"],
+      ["![caption|300](…)", "an image 300px wide"],
     ],
   },
 ];

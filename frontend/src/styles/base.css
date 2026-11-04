@@ -594,12 +594,6 @@ input[type="range"] {
   overflow-wrap: break-word;
 }
 
-.card-html img {
-  max-width: 100%;
-  height: auto;
-  border-radius: 4px;
-}
-
 .card-html pre {
   font-family: var(--mono);
   font-size: 0.8em;

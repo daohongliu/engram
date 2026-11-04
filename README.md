@@ -1,21 +1,30 @@
 # Better Anki
 
-A calmer, faster front end for your Anki collection, in the browser. It uses the
-official `anki` Python package underneath, so scheduling (FSRS), card templates,
-clozes, search and `.apkg` files all behave exactly as they do in Anki. What changes
-is everything you look at and type into.
+A calmer, faster flashcard app in the browser, for maths-heavy and picture-heavy
+cards. Underneath it uses the open-source `anki` Python package as its engine, so
+it gets Anki's scheduler (FSRS), card templates, clozes and search language for
+free. Everything you look at and type into is new.
 
 ![The contents page](docs/contents.png)
 
-## What is different from Anki
+## What it does
 
 **Writing cards.** Fields are Markdown with live preview, in the manner of
 Obsidian. Type `$` and the editor pairs it; as you write LaTeX a small preview
 floats under the expression and re-typesets on every keystroke. Move the cursor
 away and the source collapses into rendered maths; click it to get the source
 back. Bold, italics, headings, links, images and cloze deletions behave the same
-way. `⌘⇧C` wraps a selection in the next cloze number. Pasting an image uploads it
-to your media folder.
+way. `⌘⇧C` wraps a selection in the next cloze number.
+
+**Images.** Paste a screenshot into any field and it goes onto the card; you can
+also drop image files in, or use **+ image** above a field (the only option on a
+phone or tablet). While it uploads, a placeholder holds its place. The picture
+shows in the editor straight away; drag its corner to resize it, which records
+the width in the Markdown as `![caption|300](paste-….png)`, Obsidian's syntax.
+During review, click a picture to see it full size. In the browser, cards show
+thumbnails, and `has:image` (or the "With an image" filter) finds every card
+with a picture. Pasted images are named by their content, so pasting the same
+screenshot twice stores it once.
 
 ![Writing a card: the maths preview follows the cursor](docs/write.png)
 
@@ -38,6 +47,7 @@ works, plus a few shorthands:
 | `is:due`          | `is:due` (unchanged)       |
 | `is:fragile`      | `prop:r<0.8` (likely to be forgotten) |
 | `is:hard`         | `prop:d>0.7`               |
+| `has:image`       | cards containing a picture |
 
 `j`/`k` move through results, `x` selects, shift-click selects a range, and a bar
 appears for bulk moves, tags, flags, suspension and deletion. Nothing asks for
@@ -57,21 +67,13 @@ front of a book, an almanac of statistics, a LaTeX preamble for your own macros
 (`\R`, `\norm{x}` and friends come predefined), light and dark themes, and `?`
 for the list of shortcuts.
 
-## How your cards are stored
+## Where things are kept
 
-Anki fields are HTML, and every Anki client expects them to be. Better Anki
-therefore stores each field as the rendered HTML (with maths as `\(...\)` for
-MathJax) followed by an invisible HTML comment holding the Markdown source. Your
-cards keep working in Anki desktop, AnkiMobile and AnkiDroid. If you later edit a
-field in Anki desktop, Better Anki notices that the HTML no longer matches and
-treats the HTML as the source from then on.
-
-Notes written in Anki's own editor open here converted to Markdown for editing,
-and are only rewritten if you change them.
-
-Two limitations follow from this. Macros from the preamble are rendered by KaTeX
-in this app, but Anki's MathJax will not know them. And notetype CSS is not
-applied here, since cards are set in the app's own typography.
+Everything lives in one folder: `data/collection.anki2` (an Anki-format SQLite
+database holding notes, cards and review history) and `data/collection.media/`
+(your images). Back up `data/` and you have backed up everything. Fields are
+stored as rendered HTML with the Markdown source alongside, so the Markdown you
+typed is always what you get back in the editor.
 
 ## Running it
 
@@ -93,16 +95,9 @@ On first run this creates `data/collection.anki2` with a small demo collection:
 a "Start here" deck that explains the app, and some linear algebra, analysis,
 probability and algorithms cards.
 
-To use your real collection, **quit Anki desktop first** (two programs must not
-write to the same collection at once) and point the server at it:
-
-```sh
-.venv/bin/python -m better_anki --collection ~/.local/share/Anki2/"User 1"/collection.anki2
-# macOS: ~/Library/Application\ Support/Anki2/User\ 1/collection.anki2
-```
-
-It is worth taking a backup the first time. Syncing with AnkiWeb is not built in
-yet; sync from Anki desktop before and after a session.
+Delete the demo decks whenever you like (each deck's ⋯ menu), or start empty
+with `BETTER_ANKI_NO_DEMO=1`. To keep a collection somewhere else, pass
+`--collection path/to/collection.anki2`.
 
 ### Developing
 
@@ -117,11 +112,11 @@ Tests: `.venv/bin/python -m pytest backend` and `cd frontend && npm test`.
 
 ```
 backend/better_anki/
-  fields.py       Markdown ↔ Anki field encoding (and legacy HTML → Markdown)
+  fields.py       Markdown rendering (maths, footnotes, image sizes) and field storage
   search.py       search shorthands on top of Anki's query language
   store.py        the single open collection, behind a lock
   seed.py         the demo collection
-  routes/         decks, review, browse/search, notes, stats, media and import/export
+  routes/         decks, review, browse/search, notes, stats, media and settings
 frontend/src/
   editor/         CodeMirror 6 live preview: maths, marks, clozes, footnotes
   pages/          Contents, Review, Browse, Write, Almanac, Settings

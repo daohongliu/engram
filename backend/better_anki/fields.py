@@ -86,12 +86,39 @@ def _paren_math(state: StateInline, silent: bool) -> bool:
     return True
 
 
+_SIZE_RE = re.compile(r"^(.*?)\|\s*(\d+)(?:\s*x\s*(\d+))?\s*$")
+
+
+def _image(self, tokens, idx, options, env) -> str:
+    """Images, with Obsidian's size syntax: ![caption|300](file.png).
+
+    The number after the bar is a width in pixels; "300x200" sets both.
+    Images are never stretched beyond their natural size or the card.
+    """
+    token = tokens[idx]
+    alt = self.renderInlineAsText(token.children or [], options, env)
+    src = htmllib.escape(token.attrGet("src") or "", quote=True)
+    attrs = [f'src="{src}"']
+    match = _SIZE_RE.match(alt)
+    if match:
+        alt = match.group(1).strip()
+        attrs.append(f'width="{match.group(2)}"')
+        if match.group(3):
+            attrs.append(f'height="{match.group(3)}"')
+    attrs.append(f'alt="{htmllib.escape(alt, quote=True)}"')
+    title = token.attrGet("title")
+    if title:
+        attrs.append(f'title="{htmllib.escape(str(title), quote=True)}"')
+    return f"<img {' '.join(attrs)}>"
+
+
 def _build_md() -> MarkdownIt:
     md = MarkdownIt("commonmark", {"html": True, "breaks": True, "typographer": False})
     md.enable(["table", "strikethrough"])
     md.use(footnote_plugin)
     md.use(dollarmath_plugin, double_inline=True, allow_digits=False, allow_space=False)
     md.inline.ruler.before("escape", "paren_math", _paren_math)
+    md.add_render_rule("image", _image)
     md.add_render_rule("math_inline", lambda self, tokens, idx, options, env: _math_inline(tokens[idx].content, {}))
     md.add_render_rule(
         "math_inline_double",

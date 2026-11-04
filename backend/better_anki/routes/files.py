@@ -1,20 +1,14 @@
-"""Media, import/export and the few settings we keep in the collection."""
+"""Media files, and the few settings we keep in the collection."""
 
 from __future__ import annotations
 
-import os
+import hashlib
+import mimetypes
 import re
-import tempfile
 from pathlib import Path
 from typing import Any
 
-from anki.collection import (
-    DeckIdLimit,
-    ExportAnkiPackageOptions,
-    ImportAnkiPackageOptions,
-    ImportAnkiPackageRequest,
-)
-from fastapi import APIRouter, BackgroundTasks, HTTPException, UploadFile
+from fastapi import APIRouter, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
@@ -44,72 +38,36 @@ def media(name: str) -> FileResponse:
     return FileResponse(target, headers={"Cache-Control": "max-age=86400"})
 
 
+# Names browsers and operating systems give to pasted or captured images.
+_GENERIC_NAME = re.compile(r"^(image|blob|pasted|clipboard|screenshot|screen shot|img|photo)\b", re.I)
+IMAGE_TYPES = {"image/png", "image/jpeg", "image/gif", "image/webp", "image/svg+xml", "image/avif"}
+MAX_BYTES = 50 * 1024 * 1024
+
+
 @router.post("/media")
 async def upload_media(file: UploadFile) -> dict[str, Any]:
     data = await file.read()
-    if len(data) > 50 * 1024 * 1024:
+    if not data:
+        raise HTTPException(400, "That file is empty.")
+    if len(data) > MAX_BYTES:
         raise HTTPException(413, "That file is over 50 MB.")
-    name = re.sub(r"[^\w.\-]+", "-", file.filename or "pasted") or "pasted"
+    original = Path(file.filename or "")
+    ext = original.suffix.lower() or mimetypes.guess_extension(file.content_type or "") or ".bin"
+    ext = {".jpe": ".jpg", ".jpeg": ".jpg"}.get(ext, ext)
+    if not original.stem or _GENERIC_NAME.match(original.stem):
+        # Pasted screenshots all arrive as "image.png"; name them by content
+        # instead, which also means pasting the same image twice stores it once.
+        name = f"paste-{hashlib.sha1(data).hexdigest()[:16]}{ext}"
+    else:
+        stem = re.sub(r"[^\w\-]+", "-", original.stem).strip("-")[:80] or "file"
+        name = f"{stem}{ext}"
     with collection() as col:
         stored = col.media.write_data(name, data)
-    return {"filename": stored}
-
-
-@router.post("/import")
-async def import_package(file: UploadFile) -> dict[str, Any]:
-    suffix = Path(file.filename or "deck.apkg").suffix.lower()
-    if suffix not in (".apkg", ".colpkg"):
-        raise HTTPException(400, "Import takes .apkg files exported from Anki.")
-    if suffix == ".colpkg":
-        raise HTTPException(
-            400,
-            "A .colpkg replaces a whole collection. Point BETTER_ANKI_COLLECTION at your "
-            "collection.anki2 instead, or export decks as .apkg.",
-        )
-    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
-        tmp.write(await file.read())
-        path = tmp.name
-    try:
-        with collection() as col:
-            out = col.import_anki_package(
-                ImportAnkiPackageRequest(
-                    package_path=path,
-                    options=ImportAnkiPackageOptions(
-                        with_scheduling=True, with_deck_configs=True
-                    ),
-                )
-            )
-        log = out.log
-        return {
-            "new": len(log.new),
-            "updated": len(log.updated),
-            "duplicate": len(log.duplicate),
-            "conflicting": len(log.conflicting),
-            "total": log.found_notes,
-        }
-    finally:
-        os.unlink(path)
-
-
-@router.get("/export/{deck_id}")
-def export_deck(deck_id: int, background: BackgroundTasks, scheduling: bool = True) -> FileResponse:
-    with collection() as col:
-        name = col.decks.name(deck_id)
-        fd, path = tempfile.mkstemp(suffix=".apkg")
-        os.close(fd)
-        col.export_anki_package(
-            out_path=path,
-            options=ExportAnkiPackageOptions(
-                with_scheduling=scheduling,
-                with_deck_configs=scheduling,
-                with_media=True,
-                legacy=False,
-            ),
-            limit=DeckIdLimit(deck_id),
-        )
-    background.add_task(os.unlink, path)
-    safe = re.sub(r"[^\w\-]+", "-", name).strip("-") or "deck"
-    return FileResponse(path, filename=f"{safe}.apkg", media_type="application/octet-stream")
+    return {
+        "filename": stored,
+        "isImage": (file.content_type or "") in IMAGE_TYPES or ext in {".png", ".jpg", ".gif", ".webp", ".svg", ".avif"},
+        "bytes": len(data),
+    }
 
 
 class SavedSearch(BaseModel):
@@ -136,6 +94,7 @@ def get_settings() -> dict[str, Any]:
         return {
             "preamble": col.get_config("betterAnki.preamble", DEFAULT_PREAMBLE),
             "collectionPath": col.path,
+            "mediaPath": col.media.dir(),
             "fsrs": bool(col.get_config("fsrs", False)),
             "savedSearches": col.get_config("betterAnki.savedSearches", DEFAULT_SAVED),
         }

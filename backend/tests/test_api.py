@@ -154,16 +154,32 @@ def test_media_upload_and_traversal(client):
     assert client.get("/api/media/..%2F..%2Fcollection.anki2").status_code == 404
 
 
-def test_export_then_import(client, deck_ids, tmp_path):
-    did = deck_ids["Maths::Probability"]
-    pkg = client.get(f"/api/export/{did}")
-    assert pkg.status_code == 200 and len(pkg.content) > 100
-    # Delete the deck, then bring it back from the package.
-    client.delete(f"/api/decks/{did}")
-    assert client.get("/api/search", params={"q": "Poisson"}).json()["total"] == 0
-    r = client.post("/api/import", files={"file": ("p.apkg", io.BytesIO(pkg.content), "application/octet-stream")}).json()
-    assert r["new"] >= 1
-    assert client.get("/api/search", params={"q": "Poisson"}).json()["total"] == 2  # a cloze note with c1 and c2
+def test_pasted_images_are_named_by_content(client):
+    png = b"\x89PNG\r\n\x1a\n" + b"pixels" * 10
+    a = client.post("/api/media", files={"file": ("image.png", io.BytesIO(png), "image/png")}).json()
+    b = client.post("/api/media", files={"file": ("image.png", io.BytesIO(png), "image/png")}).json()
+    assert a["filename"].startswith("paste-") and a["filename"].endswith(".png")
+    assert a["filename"] == b["filename"]  # same picture, stored once
+    assert a["isImage"]
+    named = client.post("/api/media", files={"file": ("Krebs cycle (v2).JPEG", io.BytesIO(b"jpg"), "image/jpeg")}).json()
+    assert named["filename"].lower() == "krebs-cycle-v2.jpg"
+    assert client.post("/api/media", files={"file": ("x.png", io.BytesIO(b""), "image/png")}).status_code == 400
+
+
+def test_image_cards(client, deck_ids):
+    basic = client.get("/api/notetypes").json()[0]
+    png = b"\x89PNG\r\n\x1a\n" + b"diagram"
+    name = client.post("/api/media", files={"file": ("image.png", io.BytesIO(png), "image/png")}).json()["filename"]
+    # A card whose front is only an image is allowed.
+    created = client.post(
+        "/api/notes",
+        json={"notetypeId": basic["id"], "deckId": deck_ids["Maths"], "fields": [f"![Name this graph|320]({name})", "$K_{3,3}$"]},
+    )
+    assert created.status_code == 200
+    cid = created.json()["cardIds"][0]
+    detail = client.get(f"/api/cards/{cid}").json()
+    assert f'<img src="{name}" width="320" alt="Name this graph">' in detail["question"]
+    assert client.get(f"/api/media/{name}").content == png
 
 
 def test_deck_crud_and_options(client):

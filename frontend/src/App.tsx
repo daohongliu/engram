@@ -1,6 +1,7 @@
 import { ReactNode, useEffect, useRef, useState } from "react";
 import { CommandPalette } from "./components/CommandPalette";
 import { HelpOverlay } from "./components/HelpOverlay";
+import { Lightbox } from "./components/Lightbox";
 import { Logo } from "./components/Sketch";
 import { Toasts } from "./components/Toasts";
 import { isTyping, MOD, useKeys } from "./lib/keys";
@@ -162,6 +163,7 @@ export function App() {
         </footer>
       )}
       <Toasts />
+      <Lightbox />
       {palette && <CommandPalette onClose={() => setPalette(false)} onHelp={() => setHelp(true)} />}
       {help && <HelpOverlay onClose={() => setHelp(false)} />}
     </div>

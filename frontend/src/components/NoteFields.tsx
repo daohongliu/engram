@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { MarkdownField } from "../editor/MarkdownField";
+import { MarkdownField, MarkdownFieldHandle } from "../editor/MarkdownField";
 import { highestCloze } from "../editor/livePreview";
 import { TagInput } from "./TagInput";
 
@@ -10,7 +10,7 @@ export interface FieldValue {
 }
 
 const PLACEHOLDERS: Record<string, string> = {
-  Front: "A question, a prompt, a half-remembered theorem…  ($ starts maths)",
+  Front: "A question, a prompt, a half-remembered theorem…  ($ starts maths; paste a screenshot to add it)",
   Back: "The answer. Footnotes[^1] become margin notes.",
   Text: "Write a sentence and wrap the hidden part with ⌘⇧C, like {{c1::this}}.",
   "Back Extra": "Anything to show after the answer.",
@@ -36,6 +36,9 @@ export function NoteFields({
   const latest = useRef(fields);
   latest.current = fields;
   const clozeBase = () => Math.max(0, ...latest.current.map((f) => highestCloze(f.value)));
+  const editors = useRef<(MarkdownFieldHandle | null)[]>([]);
+  const picker = useRef<HTMLInputElement>(null);
+  const pickFor = useRef(0);
 
   return (
     <div className="note-fields">
@@ -51,8 +54,22 @@ export function NoteFields({
                 from Anki HTML
               </span>
             )}
+            <button
+              type="button"
+              className="field-tool"
+              title="Add an image (or paste / drop one into the field)"
+              onClick={() => {
+                pickFor.current = i;
+                picker.current?.click();
+              }}
+            >
+              + image
+            </button>
           </div>
           <MarkdownField
+            ref={(h) => {
+              editors.current[i] = h;
+            }}
             value={f.value}
             onChange={(v) => onField(i, v)}
             placeholder={PLACEHOLDERS[f.name] ?? ""}
@@ -63,6 +80,18 @@ export function NoteFields({
           />
         </div>
       ))}
+      <input
+        ref={picker}
+        type="file"
+        accept="image/*"
+        multiple
+        hidden
+        onChange={(e) => {
+          const files = Array.from(e.target.files ?? []);
+          if (files.length) editors.current[pickFor.current]?.insertFiles(files);
+          e.target.value = "";
+        }}
+      />
       <div className="note-field">
         <div className="note-field-label">
           <span>Tags</span>

@@ -1,4 +1,4 @@
-import { DragEvent, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, DeckNode, DeckOptions } from "../api";
 import { Heatmap } from "../components/Charts";
 import { Owl, Scribble } from "../components/Sketch";
@@ -16,7 +16,7 @@ const MARGIN_TIPS = [
   "In the browser, #tag and @deck are shortcuts for tag: and deck: searches.",
   "Type $ in any field and maths renders as you write, like a good notebook.",
   "⌘K opens the command palette. You can study a deck without touching the mouse.",
-  "Drop an .apkg file anywhere on this page to import it.",
+  "Paste a screenshot straight into any field, then drag the corner of the picture to resize it.",
   "Ebbinghaus measured his forgetting curve on nonsense syllables. Your cards are, one hopes, more interesting.",
   "The scheduler is FSRS, which models how stable each memory is and when you will probably forget it.",
 ];
@@ -26,8 +26,6 @@ export function Contents() {
   const stats = useAsync(() => api.stats(), []);
   const [newDeck, setNewDeck] = useState<string | null>(null);
   const [optionsFor, setOptionsFor] = useState<DeckNode | null>(null);
-  const [dragging, setDragging] = useState(false);
-  const fileInput = useRef<HTMLInputElement>(null);
   const tip = useRef(MARGIN_TIPS[Math.floor(Math.random() * MARGIN_TIPS.length)]).current;
 
   useEffect(() => {
@@ -41,27 +39,6 @@ export function Contents() {
   const secsPerCard = stats.data?.secsPerCard ?? 10;
   const firstDue = data?.decks.find((d) => d.new + d.learn + d.review > 0);
 
-  const importFile = async (file: File) => {
-    const pending = toast.info(`Importing ${file.name}…`);
-    try {
-      const r = await api.importPackage(file);
-      toast.success(`Imported ${plural(r.new, "new note")}${r.updated ? `, updated ${r.updated}` : ""}${r.duplicate ? `, ${r.duplicate} already here` : ""}.`);
-      invalidate();
-      stats.reload();
-    } catch (err) {
-      toast.error((err as Error).message);
-    }
-    void pending;
-  };
-
-  const onDrop = (e: DragEvent) => {
-    e.preventDefault();
-    setDragging(false);
-    const file = Array.from(e.dataTransfer.files).find((f) => /\.(apkg|colpkg)$/i.test(f.name));
-    if (file) void importFile(file);
-    else if (e.dataTransfer.files.length) toast.error("Only .apkg files can be imported here.");
-  };
-
   const createDeck = async (name: string) => {
     try {
       await api.createDeck(name);
@@ -74,17 +51,7 @@ export function Contents() {
   };
 
   return (
-    <div
-      className={`three-col contents-page ${dragging ? "is-dragging" : ""}`}
-      onDragOver={(e) => {
-        if (Array.from(e.dataTransfer.items).some((i) => i.kind === "file")) {
-          e.preventDefault();
-          setDragging(true);
-        }
-      }}
-      onDragLeave={(e) => e.currentTarget === e.target && setDragging(false)}
-      onDrop={onDrop}
-    >
+    <div className="three-col contents-page">
       <aside className="margin margin-left">
         <div className="today-box">
           <div className="smallcaps">Today</div>
@@ -120,20 +87,6 @@ export function Contents() {
           <button className="link-button" onClick={() => setNewDeck("")}>
             + New deck
           </button>
-          <button className="link-button" onClick={() => fileInput.current?.click()}>
-            ↥ Import .apkg
-          </button>
-          <input
-            ref={fileInput}
-            type="file"
-            accept=".apkg"
-            hidden
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              if (f) void importFile(f);
-              e.target.value = "";
-            }}
-          />
         </div>
       </aside>
 
@@ -199,7 +152,6 @@ export function Contents() {
         <div className="margin-owl" title="Hoo.">
           <Owl />
         </div>
-        {dragging && <div className="drop-hint">Drop to import</div>}
       </aside>
 
       {optionsFor && <DeckOptionsDialog deck={optionsFor} onClose={() => setOptionsFor(null)} />}
@@ -289,9 +241,6 @@ function DeckRow({
             <span className="toc-menu" onMouseLeave={() => setMenu(false)}>
               <button onClick={() => (setMenu(false), onOptions(deck))}>Daily limits…</button>
               <button onClick={() => (setMenu(false), setRenaming(true))}>Rename</button>
-              <a href={api.exportUrl(deck.id)} download onClick={() => setMenu(false)}>
-                Export .apkg
-              </a>
               <button className="danger" onClick={() => void remove()}>
                 Delete deck
               </button>

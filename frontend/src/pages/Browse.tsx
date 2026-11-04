@@ -32,6 +32,7 @@ const STATES: { term: string; label: string }[] = [
   { term: "is:hard", label: "Hard" },
   { term: "is:flagged", label: "Flagged" },
   { term: "is:suspended", label: "Suspended" },
+  { term: "has:image", label: "With an image" },
   { term: "is:fresh", label: "Added today" },
   { term: "is:today", label: "Reviewed today" },
   { term: "rated:7:1", label: "Forgotten this week" },

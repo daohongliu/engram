@@ -1799,3 +1799,237 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ==================================================================
+   Images
+   ================================================================== */
+
+.field-tool {
+  margin-left: auto;
+  background: none;
+  border: none;
+  padding: 0 0.2rem;
+  font-variant: all-small-caps;
+  letter-spacing: 0.06em;
+  font-size: 0.9rem;
+  color: var(--ink-3);
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.15s, color 0.15s;
+}
+
+.note-field:hover .field-tool,
+.note-field:focus-within .field-tool,
+.field-tool:focus-visible {
+  opacity: 1;
+}
+
+.field-tool:hover {
+  color: var(--accent-ink);
+}
+
+/* Images on cards sit like prints pasted into a notebook. */
+.card-html img {
+  display: inline-block;
+  max-width: 100%;
+  height: auto;
+  vertical-align: middle;
+  border-radius: 3px;
+  background: var(--paper-raised);
+  box-shadow: 0 0 0 1px var(--rule), 0 6px 18px -10px rgba(60, 40, 20, 0.35);
+}
+
+.review-card .card-html img {
+  max-height: 62vh;
+  object-fit: contain;
+  margin: 0.4em 0;
+  cursor: zoom-in;
+  transition: transform 0.2s var(--ease), box-shadow 0.2s;
+}
+
+.review-card .card-html img:hover {
+  box-shadow: 0 0 0 1px var(--rule-strong), 0 10px 26px -10px rgba(60, 40, 20, 0.45);
+}
+
+.card-html img.is-missing {
+  min-width: 8rem;
+  min-height: 3rem;
+  outline: 1px dashed var(--accent);
+}
+
+.result-q img,
+.result-a img {
+  max-height: 4.2rem;
+  width: auto !important;
+  margin: 0.1rem 0.3rem 0.1rem 0;
+  box-shadow: 0 0 0 1px var(--rule);
+}
+
+.result-a {
+  -webkit-line-clamp: 3;
+}
+
+.index-card-body img {
+  max-height: 9rem;
+  width: auto !important;
+}
+
+.sidenote img {
+  max-height: 10rem;
+  cursor: zoom-in;
+}
+
+/* In the editor */
+.cm-image {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  margin: 0.3rem 0;
+  line-height: 0;
+  vertical-align: top;
+}
+
+.cm-image img {
+  display: block;
+  max-width: 100%;
+  max-height: 22rem;
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px var(--rule), 0 6px 18px -10px rgba(60, 40, 20, 0.35);
+  cursor: text;
+}
+
+.cm-image img[style*="width"] {
+  max-height: none;
+}
+
+.cm-image.is-missing img {
+  min-width: 6rem;
+  min-height: 2.5rem;
+  outline: 1px dashed var(--accent);
+}
+
+.cm-image-handle {
+  position: absolute;
+  right: -5px;
+  bottom: -5px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--paper-raised);
+  border: 1.5px solid var(--accent);
+  cursor: nwse-resize;
+  opacity: 0;
+  transition: opacity 0.15s;
+  touch-action: none;
+}
+
+.cm-image:hover .cm-image-handle,
+.cm-image.is-resizing .cm-image-handle {
+  opacity: 1;
+}
+
+.cm-image-size {
+  position: absolute;
+  right: 0.4rem;
+  bottom: 0.4rem;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  line-height: 1;
+  padding: 0.2rem 0.35rem;
+  border-radius: 3px;
+  background: var(--ink);
+  color: var(--paper);
+  opacity: 0;
+}
+
+.cm-image.is-resizing .cm-image-size {
+  opacity: 0.9;
+}
+
+.cm-image-src {
+  font-family: var(--mono);
+  font-size: 0.8em;
+  color: var(--ink-3);
+}
+
+.md-field.is-drop-target {
+  border-color: var(--accent) !important;
+  border-style: dashed !important;
+  background: var(--accent-wash);
+}
+
+/* Full-size viewer */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  padding: 3vh 3vw;
+  background: color-mix(in oklab, var(--paper) 92%, transparent);
+  backdrop-filter: blur(6px);
+  animation: fade 0.15s var(--ease);
+  cursor: zoom-out;
+}
+
+.lightbox img {
+  max-width: 100%;
+  max-height: 86vh;
+  object-fit: contain;
+  border-radius: 4px;
+  box-shadow: 0 0 0 1px var(--rule-strong), var(--shadow-lift);
+  background: var(--paper-raised);
+  cursor: zoom-in;
+  animation: rise 0.2s var(--ease);
+}
+
+.lightbox.is-zoomed {
+  overflow: auto;
+  justify-content: flex-start;
+  align-items: flex-start;
+}
+
+.lightbox.is-zoomed img {
+  max-width: none;
+  max-height: none;
+  cursor: zoom-out;
+}
+
+.lightbox-caption {
+  font-style: italic;
+  color: var(--ink-2);
+  margin: 0;
+}
+
+.lightbox-hint {
+  font-family: var(--hand);
+  font-size: 1.1rem;
+  color: var(--ink-3);
+  margin: 0;
+}
+
+/* On a phone the card comes first; the scheduler's notes can wait. */
+@media (max-width: 860px) {
+  .review-page {
+    padding-top: 1rem;
+  }
+  .review-page .card-facts,
+  .review-page .margin-left > .smallcaps {
+    display: none;
+  }
+  .review-page .margin-left {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+  }
+  .review-deck {
+    margin: 0;
+  }
+  .review-card .card-html img {
+    max-height: 48vh;
+  }
+}

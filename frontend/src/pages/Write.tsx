@@ -123,6 +123,8 @@ export function Write() {
             </dd>
             <dt>[^1]</dt>
             <dd>margin note</dd>
+            <dt>![|300](…)</dt>
+            <dd>image, 300px wide; or just paste one</dd>
           </dl>
         </div>
       </aside>

@@ -138,6 +138,27 @@ class TextWidget extends WidgetType {
   }
 }
 
+export function mediaUrl(src: string) {
+  if (/^(https?:|data:|blob:|\/)/.test(src)) return src;
+  let name = src;
+  try {
+    name = decodeURIComponent(src);
+  } catch {
+    /* not encoded */
+  }
+  return `/api/media/${encodeURIComponent(name)}`;
+}
+
+/** Split Obsidian-style "caption|300" or "caption|300x200" alt text. */
+export function parseImageAlt(alt: string): { caption: string; width: number | null } {
+  const m = alt.match(/^(.*?)\|\s*(\d+)(?:\s*x\s*\d+)?\s*$/);
+  return m ? { caption: m[1].trim(), width: Number(m[2]) } : { caption: alt, width: null };
+}
+
+/**
+ * An image shown in place of its Markdown. Dragging the corner handle
+ * resizes it and writes the new width back as ![caption|width](file).
+ */
 class ImageWidget extends WidgetType {
   constructor(
     readonly src: string,
@@ -146,19 +167,65 @@ class ImageWidget extends WidgetType {
     super();
   }
   eq(other: ImageWidget) {
-    return other.src === this.src;
+    return other.src === this.src && other.alt === this.alt;
   }
-  toDOM() {
+  toDOM(view: EditorView) {
+    const { caption, width } = parseImageAlt(this.alt);
     const wrap = document.createElement("span");
     wrap.className = "cm-image";
     const img = document.createElement("img");
-    img.src = /^(https?:|data:|\/)/.test(this.src) ? this.src : `/api/media/${encodeURIComponent(this.src)}`;
-    img.alt = this.alt;
-    wrap.append(img);
+    img.src = mediaUrl(this.src);
+    img.alt = caption;
+    img.draggable = false;
+    if (width) img.style.width = `${width}px`;
+    img.onerror = () => wrap.classList.add("is-missing");
+    const handle = document.createElement("span");
+    handle.className = "cm-image-handle";
+    handle.title = "Drag to resize";
+    const label = document.createElement("span");
+    label.className = "cm-image-size";
+    wrap.append(img, handle, label);
+
+    handle.addEventListener("pointerdown", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      handle.setPointerCapture(event.pointerId);
+      const startX = event.clientX;
+      const startW = img.getBoundingClientRect().width;
+      const maxW = view.contentDOM.getBoundingClientRect().width - 16;
+      wrap.classList.add("is-resizing");
+      const move = (e: PointerEvent) => {
+        const w = Math.round(Math.max(40, Math.min(maxW, startW + e.clientX - startX)));
+        img.style.width = `${w}px`;
+        label.textContent = `${w}px`;
+      };
+      const up = () => {
+        handle.removeEventListener("pointermove", move);
+        handle.removeEventListener("pointerup", up);
+        wrap.classList.remove("is-resizing");
+        const w = Math.round(img.getBoundingClientRect().width);
+        const pos = view.posAtDOM(wrap);
+        const line = view.state.doc.lineAt(pos);
+        // Find this image's Markdown on its line and rewrite the alt text.
+        const re = /!\[([^\]]*)\]\(([^)]*)\)/g;
+        for (const m of line.text.matchAll(re)) {
+          const from = line.from + m.index!;
+          const to = from + m[0].length;
+          if (pos < from - 1 || pos > to) continue;
+          const altFrom = from + 2;
+          const altTo = altFrom + m[1].length;
+          const next = `${parseImageAlt(m[1]).caption}|${w}`;
+          view.dispatch({ changes: { from: altFrom, to: altTo, insert: next } });
+          break;
+        }
+      };
+      handle.addEventListener("pointermove", move);
+      handle.addEventListener("pointerup", up);
+    });
     return wrap;
   }
-  ignoreEvent() {
-    return false;
+  ignoreEvent(event: Event) {
+    return (event.target as HTMLElement | null)?.classList?.contains("cm-image-handle") ?? false;
   }
 }
 
@@ -286,10 +353,15 @@ function build(state: EditorState): Built {
           decos.push(Decoration.line({ class: "cm-quote-line" }).range(doc.lineAt(from).from));
           return false;
         case "Image": {
+          const src = text.slice(from, to).match(/\]\(<?([^)>\s]+)/)?.[1];
+          const alt = text.slice(from, to).match(/^!\[([^\]]*)\]/)?.[1] ?? "";
+          if (!src || src.startsWith("uploading:")) return false;
           if (!touches(from, to)) {
-            const src = text.slice(from, to).match(/\]\(([^)\s]+)/)?.[1];
-            const alt = text.slice(from, to).match(/^!\[([^\]]*)\]/)?.[1] ?? "";
-            if (src) reps.push(Decoration.replace({ widget: new ImageWidget(src, alt) }).range(from, to));
+            reps.push(Decoration.replace({ widget: new ImageWidget(src, alt) }).range(from, to));
+          } else {
+            // Editing the Markdown: keep the picture in view just after it.
+            decos.push(Decoration.mark({ class: "cm-image-src" }).range(from, to));
+            decos.push(Decoration.widget({ widget: new ImageWidget(src, alt), side: 1, block: false }).range(to));
           }
           return false;
         }

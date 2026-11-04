@@ -8,7 +8,7 @@ of shorthands borrowed from note-taking apps:
 * ``@"linear algebra"`` → ``"deck:*linear algebra*"``
 * ``-#todo``            → ``-tag:todo``
 
-and a handful of readable aliases for common states.
+and a handful of readable aliases for common states, plus ``has:image``.
 """
 
 from __future__ import annotations
@@ -20,6 +20,7 @@ ALIASES = {
     "is:fresh": "added:1",
     "is:flagged": "-flag:0",
     "is:leech": "tag:leech",
+    "has:image": '"<img"',
 }
 
 

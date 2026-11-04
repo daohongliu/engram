@@ -11,6 +11,28 @@ from anki.collection import Collection
 
 from .fields import encode_field
 
+# A small diagram so the demo shows an image card. Drawn by hand, in the
+# sense that someone typed every coordinate.
+UNIT_CIRCLE_SVG = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="480" height="480">
+<rect width="240" height="240" fill="#fbf8f1"/>
+<g fill="none" stroke="#887d6e" stroke-width="1">
+<path d="M20 120 H220 M120 20 V220"/>
+</g>
+<circle cx="120" cy="120" r="80" fill="none" stroke="#2a2620" stroke-width="2"/>
+<path d="M120 120 L176.6 63.4" stroke="#b4532a" stroke-width="2.2"/>
+<path d="M176.6 63.4 V120" stroke="#3c5a78" stroke-width="1.6" stroke-dasharray="4 3"/>
+<path d="M145 120 A25 25 0 0 0 137.7 102.3" fill="none" stroke="#b4532a" stroke-width="1.4"/>
+<circle cx="176.6" cy="63.4" r="4.5" fill="#b4532a"/>
+<g font-family="Georgia, serif" font-style="italic" font-size="15" fill="#2a2620">
+<text x="183" y="58">P</text>
+<text x="150" y="113" fill="#b4532a">θ</text>
+<text x="204" y="136">1</text>
+<text x="124" y="34">y</text>
+<text x="206" y="112">x</text>
+</g>
+</svg>
+"""
+
 B = "Basic"
 R = "Basic (and reversed card)"
 C = "Cloze"
@@ -60,6 +82,18 @@ NOTES: list[tuple[str, str, list[str], list[str]]] = [
             "search box explains what your query means.",
         ],
         ["tour", "search"],
+    ),
+    (
+        "Start here",
+        B,
+        [
+            "How do I put a picture on a card?",
+            "Paste it. A screenshot on the clipboard goes straight into whichever field you are typing "
+            "in; you can also drag files in, or use **+ image** above a field.\n\n"
+            "Drag the corner of a picture to resize it. That writes the width into the Markdown as "
+            "`![caption|300](file.png)`, which you can also type yourself.",
+        ],
+        ["tour", "images"],
     ),
     (
         "Start here",
@@ -123,6 +157,16 @@ NOTES: list[tuple[str, str, list[str], list[str]]] = [
             "$\\chi_A(t) = \\det(tI - A)$ then $\\chi_A(A) = 0$.",
         ],
         ["linalg", "theorem"],
+    ),
+    (
+        "Maths::Analysis",
+        B,
+        [
+            "![The unit circle|240](unit-circle.svg)\n\nWhat are the coordinates of $P$?",
+            "$P = (\\cos\\theta, \\sin\\theta)$, which is where both functions are *defined*, "
+            "not just illustrated.[^1]\n\n[^1]: Click a picture during review to see it full size.",
+        ],
+        ["analysis", "trigonometry"],
     ),
     # ----------------------------------------------------------- analysis
     (
@@ -228,6 +272,7 @@ NOTES: list[tuple[str, str, list[str], list[str]]] = [
 
 
 def seed_collection(col: Collection) -> None:
+    col.media.write_data("unit-circle.svg", UNIT_CIRCLE_SVG.encode("utf-8"))
     models = {name: col.models.by_name(name) for name in (B, R, C)}
     for deck_name, notetype, fields, tags in NOTES:
         deck_id = col.decks.id(deck_name)

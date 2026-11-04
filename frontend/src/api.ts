@@ -213,6 +213,7 @@ export interface Stats {
 export interface Settings {
   preamble: string;
   collectionPath: string;
+  mediaPath: string;
   fsrs: boolean;
   savedSearches: { name: string; query: string }[];
 }
@@ -287,15 +288,6 @@ export const api = {
   uploadMedia: (file: File) => {
     const fd = new FormData();
     fd.append("file", file);
-    return post<{ filename: string }>("/api/media", fd);
+    return post<{ filename: string; isImage: boolean; bytes: number }>("/api/media", fd);
   },
-  importPackage: (file: File) => {
-    const fd = new FormData();
-    fd.append("file", file);
-    return post<{ new: number; updated: number; duplicate: number; conflicting: number; total: number }>(
-      "/api/import",
-      fd,
-    );
-  },
-  exportUrl: (deckId: number, scheduling = true) => `/api/export/${deckId}?scheduling=${scheduling}`,
 };

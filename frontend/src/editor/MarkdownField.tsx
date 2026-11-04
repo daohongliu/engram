@@ -5,7 +5,7 @@ import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { EditorState, Prec } from "@codemirror/state";
 import { EditorView, keymap, placeholder as placeholderExt } from "@codemirror/view";
 import { tags as t } from "@lezer/highlight";
-import { useEffect, useRef } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import { api } from "../api";
 import { toast } from "../lib/toast";
 import { deleteDollarPair, highestCloze, insertCloze, livePreview, wrapWith } from "./livePreview";
@@ -38,35 +38,79 @@ export interface MarkdownFieldProps {
   compact?: boolean;
 }
 
+export interface MarkdownFieldHandle {
+  /** Upload files and insert them at the cursor (or the end). */
+  insertFiles: (files: File[]) => void;
+  focus: () => void;
+}
+
+let uploadSeq = 0;
+
+/**
+ * Upload files and put them into the document. A placeholder goes in
+ * straight away and is swapped for the real Markdown when the upload
+ * finishes, wherever the placeholder has moved to by then.
+ */
+async function uploadInto(v: EditorView, files: File[], at: number) {
+  let pos = at;
+  const jobs = files.map((file) => {
+    const id = `uploading:${++uploadSeq}`;
+    const before = pos > 0 && !/\s/.test(v.state.doc.sliceString(pos - 1, pos)) ? "\n" : "";
+    const placeholder = `${before}![Uploading ${file.name.replace(/[[\]]/g, "")}…](${id})`;
+    v.dispatch({ changes: { from: pos, insert: placeholder }, selection: { anchor: pos + placeholder.length } });
+    pos += placeholder.length;
+    return { file, marker: `](${id})` };
+  });
+  for (const { file, marker } of jobs) {
+    const find = () => {
+      const text = v.state.doc.toString();
+      const end = text.indexOf(marker);
+      if (end < 0) return null;
+      const start = text.lastIndexOf("![", end);
+      return { from: start, to: end + marker.length };
+    };
+    try {
+      const r = await api.uploadMedia(file);
+      const at = find();
+      if (!at) continue; // the placeholder was deleted while uploading
+      const insert = r.isImage ? `![](${r.filename})` : `[sound:${r.filename}]`;
+      v.dispatch({ changes: { from: at.from, to: at.to, insert } });
+    } catch (err) {
+      const at = find();
+      if (at) v.dispatch({ changes: { from: at.from, to: at.to, insert: "" } });
+      toast.error(`Could not upload ${file.name}: ${(err as Error).message}`);
+    }
+  }
+}
+
 /**
  * A Markdown editor with live preview. Uncontrolled internally (CodeMirror
  * owns the text) but follows `value` when it changes from outside.
  */
-export function MarkdownField(props: MarkdownFieldProps) {
+export const MarkdownField = forwardRef<MarkdownFieldHandle, MarkdownFieldProps>(function MarkdownField(props, ref) {
   const host = useRef<HTMLDivElement>(null);
   const view = useRef<EditorView | null>(null);
   const latest = useRef(props);
   latest.current = props;
+
+  useImperativeHandle(ref, () => ({
+    insertFiles(files) {
+      const v = view.current;
+      if (!v) return;
+      const pos = v.hasFocus ? v.state.selection.main.head : v.state.doc.length;
+      void uploadInto(v, files, pos);
+      v.focus();
+    },
+    focus() {
+      view.current?.focus();
+    },
+  }));
 
   useEffect(() => {
     const cloze = (same: boolean) => (v: EditorView) => {
       const base = Math.max(latest.current.clozeBase?.() ?? 0, highestCloze(v.state.doc.toString()));
       return insertCloze(v, same ? Math.max(1, base) : base + 1);
     };
-    const upload = async (files: File[], v: EditorView, pos: number) => {
-      for (const file of files) {
-        try {
-          const { filename } = await api.uploadMedia(file);
-          const isImage = file.type.startsWith("image/");
-          const insert = isImage ? `![](${filename})` : `[sound:${filename}]`;
-          v.dispatch({ changes: { from: pos, insert }, selection: { anchor: pos + insert.length } });
-          pos += insert.length;
-        } catch (err) {
-          toast.error(`Could not upload ${file.name}: ${(err as Error).message}`);
-        }
-      }
-    };
-
     const state = EditorState.create({
       doc: props.value,
       extensions: [
@@ -100,16 +144,27 @@ export function MarkdownField(props: MarkdownFieldProps) {
             const files = Array.from(event.clipboardData?.files ?? []);
             if (!files.length) return false;
             event.preventDefault();
-            void upload(files, v, v.state.selection.main.head);
+            void uploadInto(v, files, v.state.selection.main.head);
             return true;
           },
           drop(event, v) {
             const files = Array.from(event.dataTransfer?.files ?? []);
             if (!files.length) return false;
             event.preventDefault();
+            host.current?.classList.remove("is-drop-target");
             const pos = v.posAtCoords({ x: event.clientX, y: event.clientY }) ?? v.state.doc.length;
-            void upload(files, v, pos);
+            void uploadInto(v, files, pos);
             return true;
+          },
+          dragover(event) {
+            if (Array.from(event.dataTransfer?.items ?? []).some((i) => i.kind === "file")) {
+              host.current?.classList.add("is-drop-target");
+            }
+            return false;
+          },
+          dragleave() {
+            host.current?.classList.remove("is-drop-target");
+            return false;
           },
         }),
         EditorView.contentAttributes.of({
@@ -138,7 +193,7 @@ export function MarkdownField(props: MarkdownFieldProps) {
   }, [props.value]);
 
   return <div ref={host} className={`md-field${props.compact ? " md-field-compact" : ""}`} />;
-}
+});
 
 /** Focus the first editor inside an element. */
 export function focusFirstEditor(root: HTMLElement | null) {

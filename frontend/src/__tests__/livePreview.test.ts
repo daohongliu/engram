@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decorationsFor, findMath, highestCloze } from "../editor/livePreview";
+import { decorationsFor, findMath, highestCloze, mediaUrl, parseImageAlt } from "../editor/livePreview";
 
 describe("findMath", () => {
   it("finds inline and display maths", () => {
@@ -56,5 +56,19 @@ describe("highestCloze", () => {
   it("finds the largest cloze number", () => {
     expect(highestCloze("{{c1::a}} {{c12::b}} {{c3::c}}")).toBe(12);
     expect(highestCloze("none")).toBe(0);
+  });
+});
+
+describe("images", () => {
+  it("reads Obsidian-style sizes from the alt text", () => {
+    expect(parseImageAlt("graph|300")).toEqual({ caption: "graph", width: 300 });
+    expect(parseImageAlt("|300x200")).toEqual({ caption: "", width: 300 });
+    expect(parseImageAlt("a|b")).toEqual({ caption: "a|b", width: null });
+  });
+
+  it("points relative sources at the media endpoint, once", () => {
+    expect(mediaUrl("paste-1.png")).toBe("/api/media/paste-1.png");
+    expect(mediaUrl("my%20file.png")).toBe("/api/media/my%20file.png");
+    expect(mediaUrl("https://example.com/a.png")).toBe("https://example.com/a.png");
   });
 });
