@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from ..cardinfo import describe_due, memory_from_data, render_card
 from ..fields import decode_field
 from ..search import build_query, refine
-from ..store import collection
+from ..store import collection, drop_unused_tags
 
 router = APIRouter(prefix="/api", tags=["browse"])
 
@@ -191,6 +191,7 @@ def bulk(body: Bulk) -> dict[str, Any]:
             s.unbury_cards(cids)
         elif a == "delete":
             col.remove_notes(nids)
+            drop_unused_tags(col)
         elif a == "move":
             if body.deckId is None:
                 raise HTTPException(400, "Move where?")
@@ -199,6 +200,7 @@ def bulk(body: Bulk) -> dict[str, Any]:
             col.tags.bulk_add(nids, body.tags or "")
         elif a == "removeTags":
             col.tags.bulk_remove(nids, body.tags or "")
+            drop_unused_tags(col)
         elif a == "flag":
             col.set_user_flag_for_cards(body.flag or 0, cids)
         elif a == "forget":

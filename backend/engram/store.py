@@ -36,6 +36,9 @@ class Store:
                 from .seed import seed_collection
 
                 seed_collection(self._col)
+        elif _has_unused_tags(self._col):
+            # Tidy tags left behind before unused tags were removed automatically.
+            self._col.tags.clear_unused_tags()
 
     @contextmanager
     def col(self) -> Iterator[Collection]:
@@ -45,6 +48,26 @@ class Store:
     def close(self) -> None:
         with self._lock:
             self._col.close()
+
+
+def drop_unused_tags(col: Collection) -> None:
+    """Delete tags that no note uses any more.
+
+    Call this right after a change that may have removed the last use of a
+    tag. The cleanup is folded into that change's undo step, so one undo
+    brings back the notes and their tags together.
+    """
+    step = col.undo_status().last_step
+    col.tags.clear_unused_tags()
+    if step:
+        col.merge_undo_entries(step)
+
+
+def _has_unused_tags(col: Collection) -> bool:
+    used = {t.lower() for (s,) in col.db.all("select tags from notes where tags != ''") for t in s.split()}
+    return any(
+        t.lower() not in used and not any(u.startswith(t.lower() + "::") for u in used) for t in col.tags.all()
+    )
 
 
 _store: Store | None = None

@@ -6,7 +6,7 @@ from anki.errors import NotFoundError
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from ..store import collection
+from ..store import collection, drop_unused_tags
 
 router = APIRouter(prefix="/api/decks", tags=["decks"])
 
@@ -88,6 +88,7 @@ def rename_deck(deck_id: int, body: DeckRename) -> dict[str, Any]:
 def delete_deck(deck_id: int) -> dict[str, Any]:
     with collection() as col:
         out = col.decks.remove([deck_id])
+        drop_unused_tags(col)
         return {"removedCards": out.count}
 
 

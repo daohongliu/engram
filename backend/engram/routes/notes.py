@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from ..cardinfo import clean_card_html, split_answer
 from ..fields import decode_field, encode_field
-from ..store import collection
+from ..store import collection, drop_unused_tags
 
 router = APIRouter(prefix="/api", tags=["notes"])
 
@@ -137,6 +137,8 @@ def update_note(note_id: int, body: NoteIn) -> dict[str, Any]:
         note.tags = [t for t in body.tags if t.strip()]
         if (list(note.fields), list(note.tags)) != before:
             col.update_note(note)
+            if list(note.tags) != before[1]:
+                drop_unused_tags(col)
         if body.deckId is not None:
             col.set_deck(list(note.card_ids()), body.deckId)
         return {"ok": True, "noteId": note.id, "changed": (list(note.fields), list(note.tags)) != before}
@@ -146,6 +148,7 @@ def update_note(note_id: int, body: NoteIn) -> dict[str, Any]:
 def delete_note(note_id: int) -> dict[str, Any]:
     with collection() as col:
         col.remove_notes([note_id])
+        drop_unused_tags(col)
         return {"ok": True}
 
 

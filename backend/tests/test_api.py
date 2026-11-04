@@ -199,3 +199,55 @@ def test_spa_fallback(client):
 def test_tags_endpoint(client):
     tags = {t["name"]: t["notes"] for t in client.get("/api/tags").json()}
     assert tags["theorem"] >= 3
+
+
+def test_unused_tags_are_deleted(client, deck_ids):
+    def tag_names():
+        return {t["name"] for t in client.get("/api/tags").json()}
+
+    basic = client.get("/api/notetypes").json()[0]
+    did = deck_ids["Maths::Analysis"]
+    nid = client.post(
+        "/api/notes", json={"notetypeId": basic["id"], "deckId": did, "fields": ["Q", "A"], "tags": ["draft"]}
+    ).json()["noteId"]
+    assert "draft" in tag_names()
+
+    # Retagging the only note that used a tag deletes the old tag.
+    client.put(f"/api/notes/{nid}", json={"fields": ["Q", "A"], "tags": ["final"]})
+    assert "draft" not in tag_names()
+    assert "final" in tag_names()
+
+    # Deleting the last note with a tag deletes the tag, and one undo restores both.
+    client.delete(f"/api/notes/{nid}")
+    assert "final" not in tag_names()
+    assert client.post("/api/undo").json()["undid"] == "Delete Note"
+    assert client.get(f"/api/notes/{nid}").status_code == 200
+    assert "final" in tag_names()
+
+    # Removing a tag in bulk from every note that has it deletes it.
+    cids = [r["id"] for r in client.get("/api/search", params={"tag": "final"}).json()["rows"]]
+    client.post("/api/cards/bulk", json={"ids": cids, "action": "removeTags", "tags": "final"})
+    assert "final" not in tag_names()
+
+    # Tags still in use elsewhere are kept.
+    assert "theorem" in tag_names()
+
+
+def test_unused_tags_are_tidied_on_open(tmp_path):
+    from engram.store import Store
+
+    path = tmp_path / "collection.anki2"
+    store = Store(path, seed_demo=False)
+    with store.col() as col:
+        note = col.new_note(col.models.by_name("Basic"))
+        note["Front"] = "Q"
+        note.tags = ["orphan"]
+        col.add_note(note, 1)
+        col.remove_notes([note.id])  # bypasses the cleanup, leaving the tag behind
+        assert "orphan" in col.tags.all()
+    store.close()
+
+    store = Store(path, seed_demo=False)
+    with store.col() as col:
+        assert "orphan" not in col.tags.all()
+    store.close()
