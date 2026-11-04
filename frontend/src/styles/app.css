@@ -1249,7 +1249,7 @@ tr:hover .row-menu-btn,
 .search {
   position: relative;
   flex: 1;
-  max-width: 520px;
+  min-width: 0;
 }
 
 .search svg {
