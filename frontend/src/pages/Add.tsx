@@ -40,6 +40,21 @@ export function Add() {
   const [round, setRound] = useState(0);
   const form = useRef<HTMLDivElement>(null);
 
+  // The latest field values and tags, updated as soon as they change. A
+  // submit triggered by a key press reads these, so it never sees a render
+  // that is one keystroke behind.
+  const fieldsRef = useRef(fields);
+  const tagsRef = useRef(tags);
+  const busyRef = useRef(false);
+  const updateFields = (fn: (old: FieldValue[]) => FieldValue[]) => {
+    fieldsRef.current = fn(fieldsRef.current);
+    setFields(fieldsRef.current);
+  };
+  const updateTags = (t: string[]) => {
+    tagsRef.current = t;
+    setTags(t);
+  };
+
   const notetype: Notetype | undefined = types?.find((t) => t.id === typeId);
 
   useEffect(() => {
@@ -62,17 +77,20 @@ export function Add() {
 
   useEffect(() => {
     if (!notetype) return;
-    setFields((old) => notetype.fields.map((name, i) => ({ name, value: old.find((f) => f.name === name)?.value ?? old[i]?.value ?? "" })));
+    updateFields((old) => notetype.fields.map((name, i) => ({ name, value: old.find((f) => f.name === name)?.value ?? old[i]?.value ?? "" })));
   }, [notetype]);
 
   const deckName = useMemo(() => flattenDecks(deckData?.decks ?? []).find((d) => d.id === deckId)?.fullName ?? "", [deckData, deckId]);
 
   const submit = async () => {
-    if (!notetype || deckId === null || busy) return;
+    const fields = fieldsRef.current;
+    const tags = tagsRef.current;
+    if (!notetype || deckId === null || busyRef.current) return;
     if (!fields[0]?.value.trim()) {
       toast.error(`${fields[0]?.name ?? "The first field"} is empty.`);
       return;
     }
+    busyRef.current = true;
     setBusy(true);
     try {
       const r = await api.addNote({ notetypeId: notetype.id, deckId, fields: fields.map((f) => f.value), tags });
@@ -81,7 +99,7 @@ export function Add() {
         label: "Undo",
         run: () => void undoLast(),
       });
-      setFields(fields.map((f) => ({ ...f, value: "" })));
+      updateFields((fs) => fs.map((f) => ({ ...f, value: "" })));
       setLastType(notetype.id);
       setLastDeck(deckId);
       setRound((n) => n + 1);
@@ -90,9 +108,30 @@ export function Add() {
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
+      busyRef.current = false;
       setBusy(false);
     }
   };
+
+  // ⌘/Ctrl+Enter adds the card from anywhere on the page: a field, the tag
+  // box, the deck menu, or nowhere in particular. Captured before the
+  // editors see it, so it behaves the same everywhere.
+  const submitRef = useRef(submit);
+  submitRef.current = submit;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Enter" || !(e.metaKey || e.ctrlKey) || e.isComposing) return;
+      if (document.querySelector(".overlay")) return; // command menu or a dialog is open
+      e.preventDefault();
+      e.stopPropagation();
+      // A tag still being typed is committed on blur; take it with the card.
+      const active = document.activeElement as HTMLElement | null;
+      if (active?.closest(".tag-input")) active.blur();
+      void submitRef.current();
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, []);
 
   const primary = types?.filter((t) => SHORT[t.name]) ?? [];
   const others = types?.filter((t) => !SHORT[t.name] && t.name !== "Image Occlusion") ?? [];
@@ -136,10 +175,9 @@ export function Add() {
               key={`${notetype.id}-${round}`}
               idPrefix={`a${round}`}
               fields={fields}
-              onField={(i, v) => setFields((fs) => fs.map((f, j) => (j === i ? { ...f, value: v } : f)))}
+              onField={(i, v) => updateFields((fs) => fs.map((f, j) => (j === i ? { ...f, value: v } : f)))}
               tags={tags}
-              onTags={setTags}
-              onSubmit={() => void submit()}
+              onTags={updateTags}
               autoFocus
             />
           )}
