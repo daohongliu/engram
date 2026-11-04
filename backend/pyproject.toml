@@ -30,3 +30,4 @@ better_anki = ["static/**/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
