@@ -4,10 +4,10 @@ import { duration, plural } from "../lib/format";
 import { useAsync } from "../lib/hooks";
 
 const MAKEUP: { key: "new" | "learning" | "young" | "mature" | "suspended" | "buried"; label: string; colour: string; note: string }[] = [
-  { key: "new", label: "New", colour: "color-mix(in srgb, var(--due) 25%, var(--surface))", note: "Not studied yet" },
-  { key: "learning", label: "Learning", colour: "color-mix(in srgb, var(--due) 45%, var(--surface))", note: "In learning steps" },
-  { key: "young", label: "Young", colour: "color-mix(in srgb, var(--due) 70%, var(--surface))", note: "Interval under 21 days" },
-  { key: "mature", label: "Mature", colour: "var(--due)", note: "Interval 21 days or more" },
+  { key: "new", label: "New", colour: "color-mix(in srgb, var(--accent) 22%, var(--surface))", note: "Not studied yet" },
+  { key: "learning", label: "Learning", colour: "color-mix(in srgb, var(--accent) 45%, var(--surface))", note: "In learning steps" },
+  { key: "young", label: "Young", colour: "color-mix(in srgb, var(--accent) 70%, var(--surface))", note: "Interval under 21 days" },
+  { key: "mature", label: "Mature", colour: "var(--accent)", note: "Interval 21 days or more" },
   { key: "suspended", label: "Suspended", colour: "var(--text-3)", note: "Excluded from review" },
   { key: "buried", label: "Buried", colour: "var(--border-strong)", note: "Hidden until tomorrow" },
 ];

@@ -69,7 +69,7 @@ export function App() {
 
   useEffect(() => {
     const due = deckData ? deckData.totals.review + deckData.totals.learn + deckData.totals.new : 0;
-    document.title = due && !path.startsWith("/study") ? `Better Anki (${due})` : "Better Anki";
+    document.title = due && !path.startsWith("/study") ? `Engram (${due})` : "Engram";
   }, [deckData, path]);
 
   if (!loaded) return <div className="boot">Loading…</div>;
@@ -92,7 +92,7 @@ export function App() {
       <header className="topbar">
         <a href="/" className="brand">
           <Mark />
-          <span>Better Anki</span>
+          <span>Engram</span>
         </a>
         <nav className="nav" aria-label="Main">
           {NAV.map((n) => (

@@ -1,8 +1,8 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from better_anki.app import create_app
-from better_anki.store import Store, set_store
+from engram.app import create_app
+from engram.store import Store, set_store
 
 
 @pytest.fixture()

@@ -1,5 +1,5 @@
 [project]
-name = "better-anki"
+name = "engram"
 version = "0.1.0"
 description = "A calmer, faster web front end for Anki collections"
 requires-python = ">=3.10"
@@ -16,17 +16,17 @@ dependencies = [
 dev = ["pytest>=8", "httpx>=0.27"]
 
 [project.scripts]
-better-anki = "better_anki.__main__:main"
+engram = "engram.__main__:main"
 
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["better_anki*"]
+include = ["engram*"]
 
 [tool.setuptools.package-data]
-better_anki = ["static/**/*"]
+engram = ["static/**/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

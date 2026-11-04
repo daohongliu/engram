@@ -3,7 +3,7 @@ __pycache__/
 *.pyc
 node_modules/
 data/
-backend/better_anki/static/
+backend/engram/static/
 .pytest_cache/
 *.egg-info/
 dist/

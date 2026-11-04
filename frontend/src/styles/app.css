@@ -1,6 +1,6 @@
 /* ==================================================================
-   Better Anki. Warm paper, serif headings and cards, a quiet sans for
-   the controls: closer to a well-kept journal than to a dashboard.
+   Engram. Warm paper, claret ink, serif headings and cards, a quiet sans
+   for the controls: closer to a well-kept journal than to a dashboard.
    ================================================================== */
 
 :root {
@@ -13,9 +13,9 @@
   --text: #2a2824;
   --text-2: #5c574e;
   --text-3: #8d8678;
-  --accent: #4c7a57;
-  --accent-hover: #3d6747;
-  --accent-soft: #e6eee4;
+  --accent: #8a3434;
+  --accent-hover: #722828;
+  --accent-soft: #f4e5e2;
   --accent-text: #ffffff;
   --danger: #b2492c;
   --danger-soft: #f7e6df;
@@ -24,9 +24,9 @@
   --selection: #ece5cf;
 
   --new: #3b6aa0;
-  --learn: #b2552f;
+  --learn: #c0662b;
   --due: #4c7a57;
-  --again: #b2552f;
+  --again: #c0662b;
   --hard: #94701f;
   --good: #4c7a57;
   --easy: #3b6aa0;
@@ -65,19 +65,19 @@
     --text: #e9e5dc;
     --text-2: #bdb7aa;
     --text-3: #8a8477;
-    --accent: #8dbb96;
-    --accent-hover: #a3cbaa;
-    --accent-soft: #263228;
-    --accent-text: #15201a;
+    --accent: #dc9a96;
+    --accent-hover: #e8b1ad;
+    --accent-soft: #3a2626;
+    --accent-text: #2a1414;
     --danger: #e08a6c;
     --danger-soft: #3a241c;
     --warn: #d4ae5c;
     --ok: #8dbb96;
     --selection: #3a3627;
     --new: #8cb1e0;
-    --learn: #e08a6c;
+    --learn: #e8a064;
     --due: #8dbb96;
-    --again: #e08a6c;
+    --again: #e8a064;
     --hard: #d4ae5c;
     --good: #8dbb96;
     --easy: #8cb1e0;
@@ -98,19 +98,19 @@
   --text: #e9e5dc;
   --text-2: #bdb7aa;
   --text-3: #8a8477;
-  --accent: #8dbb96;
-  --accent-hover: #a3cbaa;
-  --accent-soft: #263228;
-  --accent-text: #15201a;
+  --accent: #dc9a96;
+  --accent-hover: #e8b1ad;
+  --accent-soft: #3a2626;
+  --accent-text: #2a1414;
   --danger: #e08a6c;
   --danger-soft: #3a241c;
   --warn: #d4ae5c;
   --ok: #8dbb96;
   --selection: #3a3627;
   --new: #8cb1e0;
-  --learn: #e08a6c;
+  --learn: #e8a064;
   --due: #8dbb96;
-  --again: #e08a6c;
+  --again: #e8a064;
   --hard: #d4ae5c;
   --good: #8dbb96;
   --easy: #8cb1e0;

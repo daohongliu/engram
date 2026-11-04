@@ -1,4 +1,4 @@
-"""Better Anki: a calmer, faster front end for Anki collections."""
+"""Engram: a calmer, faster front end for Anki collections."""
 
 __version__ = "0.1.0"
 

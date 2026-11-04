@@ -1,4 +1,4 @@
-from better_anki.search import _fold, visible_text
+from engram.search import _fold, visible_text
 
 
 def test_fold_ignores_case_and_accents():

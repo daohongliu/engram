@@ -9,7 +9,7 @@ export default defineConfig({
     proxy: { "/api": "http://127.0.0.1:8000" },
   },
   build: {
-    outDir: "../backend/better_anki/static",
+    outDir: "../backend/engram/static",
     emptyOutDir: true,
     chunkSizeWarningLimit: 1500,
   },

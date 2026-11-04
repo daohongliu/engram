@@ -3,7 +3,7 @@
 Anki fields hold HTML, and every Anki client (desktop, AnkiMobile, AnkiDroid)
 expects to find HTML there with maths written as ``\\(...\\)`` for MathJax.
 We want to write Markdown with ``$...$`` maths instead, without breaking
-those clients. So a field written by Better Anki looks like this::
+those clients. So a field written by Engram looks like this::
 
     <p>The derivative of <code>\\(x^2\\)</code> ...</p><!--⠿⠓⠊⠿⠁⠃⠉⠙-->
 

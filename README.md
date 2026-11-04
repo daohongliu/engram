@@ -1,4 +1,4 @@
-# Better Anki
+# Engram
 
 A flashcard app for the browser, built for cards with maths and images. It uses
 the open-source `anki` Python package as its engine, so scheduling (FSRS), card
@@ -51,15 +51,15 @@ python -m venv .venv
 
 cd frontend
 npm install
-npm run build        # builds into backend/better_anki/static
+npm run build        # builds into backend/engram/static
 cd ..
 
-.venv/bin/python -m better_anki          # http://127.0.0.1:8000
+.venv/bin/python -m engram          # http://127.0.0.1:8000
 ```
 
 The first run creates a small demo collection (a few maths and computer
 science decks). Delete the decks whenever you like, or start empty with
-`BETTER_ANKI_NO_DEMO=1`.
+`ENGRAM_NO_DEMO=1`.
 
 Everything is stored in `data/`: `collection.anki2` holds notes, cards and
 review history, and `collection.media/` holds images. Back up that folder to
@@ -69,7 +69,7 @@ location.
 ### Developing
 
 ```sh
-.venv/bin/python -m better_anki --reload   # API on :8000
+.venv/bin/python -m engram --reload   # API on :8000
 cd frontend && npm run dev                  # UI on :5173, proxies /api
 ```
 
@@ -78,7 +78,7 @@ Tests: `.venv/bin/python -m pytest backend` and `cd frontend && npm test`.
 ## Layout
 
 ```
-backend/better_anki/
+backend/engram/
   fields.py       Markdown rendering (maths, image sizes) and field storage
   search.py       plain-text search and sidebar filters
   store.py        the single open collection, behind a lock

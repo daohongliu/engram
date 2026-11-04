@@ -1,6 +1,6 @@
 import pytest
 
-from better_anki.fields import decode_field, encode_field, html_to_markdown, render_markdown, strip_payload
+from engram.fields import decode_field, encode_field, html_to_markdown, render_markdown, strip_payload
 
 SAMPLES = [
     "Paris",

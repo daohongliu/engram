@@ -23,7 +23,7 @@ async def lifespan(_app: FastAPI):
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="Better Anki", lifespan=lifespan)
+    app = FastAPI(title="Engram", lifespan=lifespan)
     for module in (decks, review, browse, notes, stats, files):
         app.include_router(module.router)
 

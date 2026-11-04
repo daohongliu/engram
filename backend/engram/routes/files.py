@@ -92,11 +92,12 @@ DEFAULT_SAVED = [
 def get_settings() -> dict[str, Any]:
     with collection() as col:
         return {
-            "preamble": col.get_config("betterAnki.preamble", DEFAULT_PREAMBLE),
+            # Settings saved before the rename live under the old key.
+            "preamble": col.get_config("engram.preamble", col.get_config("betterAnki.preamble", DEFAULT_PREAMBLE)),
             "collectionPath": col.path,
             "mediaPath": col.media.dir(),
             "fsrs": bool(col.get_config("fsrs", False)),
-            "savedSearches": col.get_config("betterAnki.savedSearches", DEFAULT_SAVED),
+            "savedSearches": col.get_config("engram.savedSearches", DEFAULT_SAVED),
         }
 
 
@@ -104,9 +105,9 @@ def get_settings() -> dict[str, Any]:
 def put_settings(body: Settings) -> dict[str, Any]:
     with collection() as col:
         if body.preamble is not None:
-            col.set_config("betterAnki.preamble", body.preamble)
+            col.set_config("engram.preamble", body.preamble)
         if body.savedSearches is not None:
             col.set_config(
-                "betterAnki.savedSearches", [s.model_dump() for s in body.savedSearches]
+                "engram.savedSearches", [s.model_dump() for s in body.savedSearches]
             )
     return get_settings()

@@ -1,12 +1,13 @@
 import { useSyncExternalStore } from "react";
 
 export type Theme = "auto" | "light" | "dark";
-const KEY = "better-anki.theme";
+const KEY = "engram.theme";
+const OLD_KEY = "better-anki.theme";
 const listeners = new Set<() => void>();
 
 function read(): Theme {
   try {
-    return (localStorage.getItem(KEY) as Theme) || "auto";
+    return (localStorage.getItem(KEY) as Theme) || (localStorage.getItem(OLD_KEY) as Theme) || "auto";
   } catch {
     return "auto";
   }

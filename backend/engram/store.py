@@ -20,7 +20,7 @@ DEFAULT_PATH = Path(__file__).resolve().parents[2] / "data" / "collection.anki2"
 
 class Store:
     def __init__(self, path: str | os.PathLike | None = None, seed_demo: bool | None = None):
-        env_path = os.environ.get("BETTER_ANKI_COLLECTION")
+        env_path = os.environ.get("ENGRAM_COLLECTION") or os.environ.get("BETTER_ANKI_COLLECTION")
         self.path = Path(path or env_path or DEFAULT_PATH).expanduser().resolve()
         self.path.parent.mkdir(parents=True, exist_ok=True)
         is_new = not self.path.exists()
@@ -31,7 +31,7 @@ class Store:
             # collections keep whatever the user chose in Anki.
             self._col.set_config("fsrs", True)
             if seed_demo is None:
-                seed_demo = os.environ.get("BETTER_ANKI_NO_DEMO") is None
+                seed_demo = not (os.environ.get("ENGRAM_NO_DEMO") or os.environ.get("BETTER_ANKI_NO_DEMO"))
             if seed_demo:
                 from .seed import seed_collection
 

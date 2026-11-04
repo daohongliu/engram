@@ -23,10 +23,10 @@ const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "
 /** One hue, light to dark. */
 const RAMP = [
   "var(--sunken)",
-  "color-mix(in srgb, var(--due) 28%, var(--surface))",
-  "color-mix(in srgb, var(--due) 50%, var(--surface))",
-  "color-mix(in srgb, var(--due) 75%, var(--surface))",
-  "var(--due)",
+  "color-mix(in srgb, var(--accent) 22%, var(--surface))",
+  "color-mix(in srgb, var(--accent) 45%, var(--surface))",
+  "color-mix(in srgb, var(--accent) 70%, var(--surface))",
+  "var(--accent)",
 ];
 
 export function Heatmap({ calendar }: { calendar: Stats["calendar"] }) {
