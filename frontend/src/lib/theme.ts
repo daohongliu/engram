@@ -4,6 +4,8 @@ export type Theme = "auto" | "light" | "dark";
 const KEY = "engram.theme";
 const OLD_KEY = "better-anki.theme";
 const listeners = new Set<() => void>();
+// Title bar colours for the installed app, matching --bg in each theme.
+const BAR = { light: "#f7f4ee", dark: "#1c1b18" };
 
 function read(): Theme {
   try {
@@ -15,8 +17,6 @@ function read(): Theme {
 
 let current: Theme = read();
 apply(current);
-
-const BAR = { light: "#f7f4ee", dark: "#1c1b18" };
 
 function apply(theme: Theme) {
   const root = document.documentElement;
