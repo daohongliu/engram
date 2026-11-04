@@ -1,0 +1,243 @@
+from __future__ import annotations
+
+import time
+from typing import Any, Literal
+
+from anki.cards import Card
+from anki.errors import NotFoundError, SearchError
+from fastapi import APIRouter, HTTPException, Query
+from google.protobuf.json_format import MessageToDict
+from pydantic import BaseModel
+
+from ..cardinfo import describe_due, memory_from_data, render_card
+from ..fields import decode_field
+from ..search import translate
+from ..store import collection
+
+router = APIRouter(prefix="/api", tags=["browse"])
+
+ORDERS = {
+    "added": "n.id {dir}, c.ord",
+    "modified": "n.mod {dir}",
+    "due": "(case when c.queue < 0 then 1 else 0 end), (case c.type when 0 then 1000000000 + c.due when 1 then 0 when 3 then 0 else c.due end) {dir}",
+    "interval": "c.ivl {dir}",
+    "lapses": "c.lapses {dir}",
+    "reviews": "c.reps {dir}",
+    "sortfield": "n.sfld collate nocase {dir}",
+    "difficulty": "extract_fsrs_variable(c.data, 'd') {dir}",
+}
+
+
+@router.get("/search")
+def search(
+    q: str = "",
+    order: str = "added",
+    desc: bool = True,
+    offset: int = Query(0, ge=0),
+    limit: int = Query(60, ge=1, le=500),
+) -> dict[str, Any]:
+    started = time.perf_counter()
+    anki_query = translate(q)
+    order_sql = ORDERS.get(order, ORDERS["added"]).format(dir="desc" if desc else "asc")
+    with collection() as col:
+        try:
+            ids = col.find_cards(anki_query, order=order_sql)
+        except SearchError as exc:
+            return {
+                "ok": False,
+                "error": str(exc).replace("⁨", "").replace("⁩", ""),
+                "query": anki_query,
+            }
+        except Exception:
+            # Fallback for orders the backend does not know (old schema etc.)
+            ids = col.find_cards(anki_query, order=True)
+        page = list(ids[offset : offset + limit])
+        rows = _rows(col, page)
+        return {
+            "ok": True,
+            "query": anki_query,
+            "total": len(ids),
+            "offset": offset,
+            "rows": rows,
+            "ms": round((time.perf_counter() - started) * 1000, 1),
+        }
+
+
+def _rows(col, card_ids: list[int]) -> list[dict[str, Any]]:
+    if not card_ids:
+        return []
+    placeholders = ",".join("?" * len(card_ids))
+    raw = col.db.all(
+        f"""select c.id, c.nid, c.did, c.odid, c.ord, c.type, c.queue,
+                   (case when c.odid then c.odue else c.due end), c.ivl, c.reps, c.lapses,
+                   c.flags, c.data, n.mid, n.tags, n.mod
+            from cards c join notes n on n.id = c.nid
+            where c.id in ({placeholders})""",
+        *card_ids,
+    )
+    by_id = {r[0]: r for r in raw}
+    deck_names = {d.id: d.name for d in col.decks.all_names_and_ids()}
+    notetype_names = {m.id: m.name for m in col.models.all_names_and_ids()}
+    rows = []
+    for cid in card_ids:
+        r = by_id.get(cid)
+        if not r:
+            continue
+        (cid, nid, did, odid, ord_, ctype, queue, due, ivl, reps, lapses, flags, data, mid, tags, mod) = r
+        card = col.get_card(cid)
+        rendered = render_card(card, browser=True)
+        rows.append(
+            {
+                "id": cid,
+                "noteId": nid,
+                "deck": deck_names.get(odid or did, "?"),
+                "notetype": notetype_names.get(mid, "?"),
+                "ord": ord_,
+                "question": rendered["question"],
+                "answer": rendered["answer"],
+                "tags": tags.split(),
+                "due": describe_due(col, ctype, queue, due, ivl),
+                "interval": ivl,
+                "reps": reps,
+                "lapses": lapses,
+                "flag": flags & 0b111,
+                "memory": memory_from_data(data),
+                "modified": mod,
+            }
+        )
+    return rows
+
+
+@router.get("/search/vocab")
+def vocab() -> dict[str, Any]:
+    """Everything the search box needs to autocomplete, in one request."""
+    with collection() as col:
+        decks = sorted(d.name for d in col.decks.all_names_and_ids())
+        tag_counts = dict(
+            col.db.all(
+                "select tag, 0 from tags"
+            )
+        )
+        notetypes = []
+        fields: set[str] = set()
+        for m in col.models.all():
+            names = [f["name"] for f in m["flds"]]
+            fields.update(names)
+            notetypes.append({"id": m["id"], "name": m["name"], "fields": names})
+        return {
+            "decks": decks,
+            "tags": sorted(tag_counts.keys(), key=str.lower),
+            "notetypes": notetypes,
+            "fields": sorted(fields, key=str.lower),
+        }
+
+
+@router.get("/cards/{card_id}")
+def card_detail(card_id: int) -> dict[str, Any]:
+    with collection() as col:
+        try:
+            card = col.get_card(card_id)
+        except NotFoundError:
+            raise HTTPException(404, "No such card.")
+        note = card.note()
+        notetype = note.note_type()
+        stats = MessageToDict(col.card_stats_data(card_id), preserving_proto_field_name=False)
+        data = col.db.scalar("select data from cards where id = ?", card_id)
+        return {
+            "id": card.id,
+            "noteId": note.id,
+            "deckId": card.current_deck_id(),
+            "deck": col.decks.name(card.current_deck_id()),
+            "notetype": {
+                "id": notetype["id"],
+                "name": notetype["name"],
+                "isCloze": notetype["type"] == 1,
+            },
+            "template": card.template()["name"],
+            "fields": [
+                {"name": f["name"], **decode_field(note.fields[i]).__dict__}
+                for i, f in enumerate(notetype["flds"])
+            ],
+            "tags": note.tags,
+            "flag": card.user_flag(),
+            "queue": card.queue,
+            "due": describe_due(col, card.type, card.queue, card.odue if card.odid else card.due, card.ivl),
+            "memory": memory_from_data(data),
+            "stats": stats,
+            "siblings": [cid for cid in note.card_ids() if cid != card_id],
+            **render_card(card),
+        }
+
+
+class Bulk(BaseModel):
+    ids: list[int]
+    action: Literal[
+        "suspend",
+        "unsuspend",
+        "bury",
+        "unbury",
+        "delete",
+        "move",
+        "addTags",
+        "removeTags",
+        "flag",
+        "forget",
+        "setDue",
+    ]
+    deckId: int | None = None
+    tags: str | None = None
+    flag: int | None = None
+    days: str | None = None
+
+
+@router.post("/cards/bulk")
+def bulk(body: Bulk) -> dict[str, Any]:
+    if not body.ids:
+        return {"ok": True, "count": 0}
+    with collection() as col:
+        cids = body.ids
+        nids = sorted({col.db.scalar("select nid from cards where id = ?", cid) for cid in cids} - {None})
+        s = col.sched
+        a = body.action
+        if a == "suspend":
+            s.suspend_cards(cids)
+        elif a == "unsuspend":
+            s.unsuspend_cards(cids)
+        elif a == "bury":
+            s.bury_cards(cids, manual=True)
+        elif a == "unbury":
+            s.unbury_cards(cids)
+        elif a == "delete":
+            col.remove_notes(nids)
+        elif a == "move":
+            if body.deckId is None:
+                raise HTTPException(400, "Move where?")
+            col.set_deck(cids, body.deckId)
+        elif a == "addTags":
+            col.tags.bulk_add(nids, body.tags or "")
+        elif a == "removeTags":
+            col.tags.bulk_remove(nids, body.tags or "")
+        elif a == "flag":
+            col.set_user_flag_for_cards(body.flag or 0, cids)
+        elif a == "forget":
+            s.schedule_cards_as_new(cids, restore_position=True, reset_counts=False)
+        elif a == "setDue":
+            s.set_due_date(cids, body.days or "0")
+        return {"ok": True, "count": len(cids), "undo": col.undo_status().undo}
+
+
+@router.get("/undo")
+def undo_status() -> dict[str, Any]:
+    with collection() as col:
+        st = col.undo_status()
+        return {"undo": st.undo or None, "redo": st.redo or None}
+
+
+@router.post("/undo")
+def undo() -> dict[str, Any]:
+    with collection() as col:
+        st = col.undo_status()
+        if not st.undo:
+            raise HTTPException(409, "Nothing to undo.")
+        col.undo()
+        return {"undid": st.undo}

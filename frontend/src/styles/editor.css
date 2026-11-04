@@ -1,0 +1,280 @@
+/* ------------------------------------------------------------------
+   The live-preview Markdown editor.
+   ------------------------------------------------------------------ */
+
+.md-field {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--paper);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.write-sheet .md-field {
+  background: transparent;
+  border-color: transparent;
+  border-bottom: 1px solid var(--rule);
+  border-radius: 0;
+}
+
+.md-field:focus-within {
+  border-color: var(--rule-strong);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 12%, transparent);
+}
+
+.write-sheet .md-field:focus-within {
+  box-shadow: none;
+  border-bottom-color: var(--accent);
+}
+
+.md-field .cm-editor {
+  font-family: var(--serif);
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: var(--ink);
+  background: transparent;
+}
+
+.md-field .cm-editor.cm-focused {
+  outline: none;
+}
+
+.md-field .cm-scroller {
+  font-family: inherit;
+  line-height: inherit;
+}
+
+.md-field .cm-content {
+  padding: 0.55rem 0.7rem;
+  min-height: 2.6rem;
+  caret-color: var(--accent);
+}
+
+.write-sheet .md-field .cm-content {
+  padding: 0.45rem 0.1rem 0.6rem;
+}
+
+.md-field .cm-line {
+  padding: 0;
+}
+
+.md-field .cm-placeholder {
+  color: var(--ink-4);
+  font-style: italic;
+}
+
+.md-field .cm-cursor {
+  border-left: 2px solid var(--accent);
+}
+
+.md-field .cm-selectionBackground,
+.md-field .cm-editor.cm-focused .cm-selectionBackground,
+.md-field .cm-content ::selection {
+  background: var(--highlight) !important;
+}
+
+/* Headings */
+.md-field .cm-h1 {
+  font-family: var(--display);
+  font-size: 1.45em;
+}
+.md-field .cm-h2 {
+  font-family: var(--display);
+  font-size: 1.25em;
+}
+
+/* Maths */
+.cm-math {
+  cursor: text;
+  border-radius: 3px;
+  transition: background 0.15s;
+}
+
+.cm-math:hover {
+  background: var(--paper-sunk);
+}
+
+.cm-math-display {
+  display: block;
+  text-align: center;
+  padding: 0.1em 0;
+}
+
+.cm-math-display .katex-display {
+  margin: 0.2em 0;
+}
+
+.cm-math-empty {
+  color: var(--ink-4);
+}
+
+.cm-math-src {
+  font-family: var(--mono);
+  font-size: 0.86em;
+  color: var(--blue);
+  background: var(--blue-wash);
+  border-radius: 3px;
+}
+
+.cm-math-delim {
+  color: var(--ink-3);
+}
+
+.cm-math-preview {
+  background: var(--paper-raised) !important;
+  border: 1px solid var(--rule-strong) !important;
+  border-radius: 8px;
+  box-shadow: var(--shadow-lift);
+  padding: 0.5rem 0.9rem;
+  margin-top: 6px;
+  max-width: min(36rem, 90vw);
+  overflow-x: auto;
+  animation: rise 0.12s var(--ease);
+  font-size: 1.1rem;
+}
+
+.cm-math-preview::before {
+  content: "preview";
+  display: block;
+  font-family: var(--hand);
+  font-size: 0.95rem;
+  color: var(--ink-3);
+  margin-bottom: 0.1rem;
+}
+
+.cm-math-preview.has-error .cm-math-preview-body {
+  opacity: 0.4;
+}
+
+.cm-math-preview-status {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--accent-ink);
+  max-width: 30rem;
+}
+
+.cm-math-preview-status:empty {
+  display: none;
+}
+
+.cm-tooltip {
+  border: none !important;
+  background: transparent !important;
+}
+
+/* Clozes */
+.cm-cloze {
+  background: var(--cz-wash);
+  border-bottom: 2px solid var(--cz);
+  border-radius: 2px;
+}
+
+.cm-cloze-syntax {
+  font-family: var(--mono);
+  font-size: 0.78em;
+  color: var(--ink-3);
+}
+
+.cm-cloze-badge {
+  display: inline-grid;
+  place-items: center;
+  font-family: var(--display);
+  font-size: 0.68em;
+  font-weight: 650;
+  min-width: 1.25em;
+  height: 1.25em;
+  border-radius: 50%;
+  background: var(--cz);
+  color: var(--paper);
+  margin-right: 0.15em;
+  vertical-align: 0.15em;
+  font-variant-numeric: lining-nums;
+}
+
+.cm-cloze-hint {
+  font-style: italic;
+  color: var(--ink-3);
+  font-size: 0.85em;
+  margin-left: 0.25em;
+}
+
+.cm-cloze-hint::before {
+  content: "(";
+}
+
+.cm-cloze-hint::after {
+  content: ")";
+}
+
+.cm-cloze-1 {
+  --cz: var(--blue);
+  --cz-wash: var(--blue-wash);
+}
+.cm-cloze-2 {
+  --cz: var(--green);
+  --cz-wash: var(--green-wash);
+}
+.cm-cloze-3 {
+  --cz: var(--accent);
+  --cz-wash: var(--accent-wash);
+}
+.cm-cloze-4 {
+  --cz: var(--amber);
+  --cz-wash: var(--amber-wash);
+}
+.cm-cloze-5 {
+  --cz: var(--flag-5);
+  --cz-wash: color-mix(in oklab, var(--flag-5) 15%, var(--paper));
+}
+.cm-cloze-6 {
+  --cz: var(--flag-7);
+  --cz-wash: color-mix(in oklab, var(--flag-7) 15%, var(--paper));
+}
+
+/* Footnotes */
+.cm-footref {
+  font-family: var(--display);
+  font-weight: 650;
+  font-size: 0.7em;
+  vertical-align: super;
+  color: var(--accent);
+  padding: 0 0.1em;
+}
+
+.cm-footref-src {
+  font-family: var(--mono);
+  font-size: 0.8em;
+  color: var(--accent-ink);
+}
+
+.cm-footdef {
+  font-size: 0.88em;
+  color: var(--ink-2);
+  border-left: 2px solid var(--rule-strong);
+  padding-left: 0.6em !important;
+}
+
+/* Lists, quotes, links, images */
+.cm-bullet {
+  color: var(--accent);
+  font-weight: 700;
+  padding-right: 0.15em;
+}
+
+.cm-quote-line {
+  border-left: 2px solid var(--rule-strong);
+  padding-left: 0.7em !important;
+}
+
+.cm-link-text {
+  color: var(--blue);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in oklab, var(--blue) 40%, transparent);
+}
+
+.cm-image img {
+  max-width: 100%;
+  max-height: 14rem;
+  border-radius: 4px;
+  display: block;
+  margin: 0.3rem 0;
+}

@@ -1,0 +1,136 @@
+/* ------------------------------------------------------------------
+   Design tokens. Paper and ink, with a vermilion pencil for emphasis.
+   ------------------------------------------------------------------ */
+
+:root {
+  --paper: #f6f1e7;
+  --paper-raised: #fbf8f1;
+  --paper-sunk: #efe8da;
+  --rule: #ddd2bf;
+  --rule-strong: #c7b9a1;
+  --ink: #2a2620;
+  --ink-2: #554d42;
+  --ink-3: #887d6e;
+  --ink-4: #b2a693;
+
+  --accent: #b4532a;
+  --accent-ink: #8f3d1b;
+  --accent-wash: #f1dccb;
+  --highlight: #f4e3a0;
+  --blue: #3c5a78;
+  --blue-wash: #dde5ec;
+  --green: #4f6f3a;
+  --green-wash: #e1e8d4;
+  --amber: #a5761f;
+  --amber-wash: #f1e4c5;
+
+  --again: var(--accent);
+  --hard: var(--amber);
+  --good: var(--green);
+  --easy: var(--blue);
+
+  --flag-1: #c0442f;
+  --flag-2: #d9822b;
+  --flag-3: #4f8a3a;
+  --flag-4: #3c6fb0;
+  --flag-5: #c25a9a;
+  --flag-6: #2f9a9a;
+  --flag-7: #7b55b5;
+
+  --serif: "Newsreader Variable", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --display: "Fraunces Variable", "Newsreader Variable", Georgia, serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --hand: "Caveat", "Bradley Hand", "Segoe Print", cursive;
+
+  --measure: 38rem;
+  --margin-col: 15rem;
+  --radius: 6px;
+  --shadow: 0 1px 0 rgba(60, 40, 20, 0.04), 0 8px 24px -12px rgba(60, 40, 20, 0.18);
+  --shadow-lift: 0 1px 0 rgba(60, 40, 20, 0.05), 0 18px 40px -18px rgba(60, 40, 20, 0.35);
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --grain-opacity: 0.35;
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="chalkboard"]) {
+    --paper: #1c1a16;
+    --paper-raised: #23201b;
+    --paper-sunk: #171511;
+    --rule: #37322a;
+    --rule-strong: #4a4337;
+    --ink: #ebe4d6;
+    --ink-2: #c3b9a8;
+    --ink-3: #8f8574;
+    --ink-4: #615849;
+    --accent: #e3895c;
+    --accent-ink: #f0a47c;
+    --accent-wash: #3b2619;
+    --highlight: #5a4a1c;
+    --blue: #8fb0d1;
+    --blue-wash: #1f2a35;
+    --green: #a3c088;
+    --green-wash: #222b1b;
+    --amber: #d9ab5a;
+    --amber-wash: #322817;
+    --shadow: 0 1px 0 rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+    --shadow-lift: 0 1px 0 rgba(0, 0, 0, 0.3), 0 18px 40px -18px rgba(0, 0, 0, 0.8);
+    --grain-opacity: 0.12;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --paper: #1c1a16;
+  --paper-raised: #23201b;
+  --paper-sunk: #171511;
+  --rule: #37322a;
+  --rule-strong: #4a4337;
+  --ink: #ebe4d6;
+  --ink-2: #c3b9a8;
+  --ink-3: #8f8574;
+  --ink-4: #615849;
+  --accent: #e3895c;
+  --accent-ink: #f0a47c;
+  --accent-wash: #3b2619;
+  --highlight: #5a4a1c;
+  --blue: #8fb0d1;
+  --blue-wash: #1f2a35;
+  --green: #a3c088;
+  --green-wash: #222b1b;
+  --amber: #d9ab5a;
+  --amber-wash: #322817;
+  --shadow: 0 1px 0 rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+  --shadow-lift: 0 1px 0 rgba(0, 0, 0, 0.3), 0 18px 40px -18px rgba(0, 0, 0, 0.8);
+  --grain-opacity: 0.12;
+  color-scheme: dark;
+}
+
+/* A hidden theme. You found it (or read the source, which also counts). */
+:root[data-theme="chalkboard"] {
+  --paper: #23332b;
+  --paper-raised: #2a3c33;
+  --paper-sunk: #1d2b24;
+  --rule: #3e5248;
+  --rule-strong: #566b60;
+  --ink: #eef0e6;
+  --ink-2: #cfd6c8;
+  --ink-3: #9fae9f;
+  --ink-4: #6f8276;
+  --accent: #f2c46d;
+  --accent-ink: #f7d48f;
+  --accent-wash: #3d4630;
+  --highlight: #4d5a35;
+  --blue: #a9cce3;
+  --blue-wash: #2c4048;
+  --green: #b9dd9b;
+  --green-wash: #2e4231;
+  --amber: #f2c46d;
+  --amber-wash: #3d4630;
+  --display: "Caveat", cursive;
+  --shadow: 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+  --shadow-lift: 0 18px 40px -18px rgba(0, 0, 0, 0.8);
+  --grain-opacity: 0.25;
+  color-scheme: dark;
+}

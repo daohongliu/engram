@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+node_modules/
+data/
+backend/better_anki/static/
+.pytest_cache/
+*.egg-info/
+dist/
