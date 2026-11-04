@@ -16,10 +16,18 @@ function read(): Theme {
 let current: Theme = read();
 apply(current);
 
+const BAR = { light: "#f7f4ee", dark: "#1c1b18" };
+
 function apply(theme: Theme) {
   const root = document.documentElement;
   if (theme === "auto") root.removeAttribute("data-theme");
   else root.setAttribute("data-theme", theme);
+  // The installed app's title bar follows theme-color: match a chosen theme,
+  // or let the light and dark tags in index.html follow the system.
+  document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]').forEach((m) => {
+    const scheme = m.media.includes("dark") ? "dark" : "light";
+    m.content = BAR[theme === "auto" ? scheme : theme];
+  });
 }
 
 export function setTheme(theme: Theme) {

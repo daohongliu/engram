@@ -80,6 +80,18 @@ review history, and `collection.media/` holds images. Back up that folder to
 back up everything. `--collection path/to/collection.anki2` uses a different
 location.
 
+### Installing as an app
+
+Engram can be installed as an app with its own window and Dock or taskbar
+icon. With the server running, open http://127.0.0.1:8000 and:
+
+- **Chrome or Edge:** click the install icon at the right of the address bar,
+  or choose *Install Engram* from the menu.
+- **Safari (macOS 14+):** choose *File › Add to Dock*.
+
+The app talks to the server on your machine, so start the server first
+(`.venv/bin/python -m engram`) whenever you want to use it.
+
 ### Developing
 
 ```sh

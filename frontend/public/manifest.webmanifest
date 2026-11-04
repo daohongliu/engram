@@ -1,0 +1,23 @@
+{
+  "id": "/",
+  "name": "Engram",
+  "short_name": "Engram",
+  "description": "Flashcards for maths and images, scheduled like Anki.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f7f4ee",
+  "theme_color": "#f7f4ee",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Study all decks", "short_name": "Study all", "url": "/study/all" },
+    { "name": "Add a card", "short_name": "Add", "url": "/add" },
+    { "name": "Browse cards", "short_name": "Browse", "url": "/browse" }
+  ]
+}
