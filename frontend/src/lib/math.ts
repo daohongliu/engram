@@ -46,6 +46,22 @@ export function getPreambleError() {
   return preambleError;
 }
 
+/**
+ * The only trusted command: \htmlClass{cloze}{...}, which previews use to
+ * colour a cloze deletion inside a formula. Nothing else gets through.
+ */
+const trust = (ctx: { command: string; class?: string }) => ctx.command === "\\htmlClass" && ctx.class === "cloze";
+
+/** Wrap TeX so it renders in the cloze colour, if its braces allow it. */
+export function clozeTex(tex: string): string {
+  let depth = 0;
+  for (const ch of tex.replace(/\\./g, "")) {
+    if (ch === "{") depth++;
+    else if (ch === "}" && --depth < 0) return tex;
+  }
+  return depth === 0 && tex.trim() ? `\\htmlClass{cloze}{${tex}}` : tex;
+}
+
 export function renderTex(tex: string, display: boolean): string {
   const key = (display ? "D" : "I") + tex;
   const hit = cache.get(key);
@@ -57,7 +73,7 @@ export function renderTex(tex: string, display: boolean): string {
       throwOnError: true,
       macros: { ...macros },
       strict: "ignore",
-      trust: false,
+      trust,
       output: "html",
     });
   } catch (err) {
@@ -72,7 +88,7 @@ export function renderTex(tex: string, display: boolean): string {
 /** Error message for a TeX snippet, or null if it renders cleanly. */
 export function texError(tex: string, display: boolean): string | null {
   try {
-    katex.renderToString(tex, { displayMode: display, throwOnError: true, macros: { ...macros }, strict: "ignore" });
+    katex.renderToString(tex, { displayMode: display, throwOnError: true, macros: { ...macros }, strict: "ignore", trust });
     return null;
   } catch (err) {
     return err instanceof Error ? err.message.replace(/^KaTeX parse error: /, "") : String(err);

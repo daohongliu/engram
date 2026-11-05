@@ -2206,6 +2206,11 @@ tr:hover .row-menu-btn,
   color: var(--accent);
 }
 
+/* A deletion inside a formula: coloured, but KaTeX's own weight. */
+.card-html .katex .cloze {
+  font-weight: inherit;
+}
+
 .card-html img {
   max-width: 100%;
   height: auto;

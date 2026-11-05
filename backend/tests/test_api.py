@@ -333,8 +333,11 @@ def test_notes_mode_cloze_inside_maths(client):
     assert len(rows) == 1
     q = rows[0]["question"]
     assert "{{c" not in q
-    # No highlighting markup inside a formula, where it would break the maths.
-    assert all("<span" not in m for m in __import__("re").findall(r"\\\(.*?\\\)", q))
+    # No HTML inside a formula, where it would break the maths; the deletion
+    # is coloured with \htmlClass instead.
+    maths = __import__("re").findall(r"\\\(.*?\\\)", q)
+    assert all("<span" not in m for m in maths)
+    assert any("\\htmlClass{cloze}{" in m for m in maths)
 
 
 def test_retagging_right_after_an_edit(client, deck_ids):

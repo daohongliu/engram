@@ -1,14 +1,14 @@
 import { markdownLanguage } from "@codemirror/lang-markdown";
 import MarkdownIt from "markdown-it";
 import { findMath } from "../editor/livePreview";
-import { escapeHtml } from "./math";
+import { clozeTex, escapeHtml } from "./math";
 
 /**
  * Render a field's Markdown to HTML for the editor's side preview, without
  * a round trip to the server. It mirrors the server's renderer in
  * backend/engram/fields.py: CommonMark with tables, strikethrough, line
  * breaks, raw HTML, Anki-style maths and ![caption|300](file) image sizes.
- * Cloze deletions are shown highlighted, as in the Notes view of Browse.
+ * Cloze deletions are shown highlighted, inside maths as well.
  *
  * Maths comes out as \(...\) and \[...\], which CardHtml then typesets.
  */
@@ -68,8 +68,9 @@ export function renderFieldPreview(source: string): string {
   html = html.replace(CLOZE_RE, '<span class="cloze">$1</span>');
   return html.replace(HOLD_RE, (_, i: string) => {
     const m = spans[Number(i)];
-    // Inside maths a deletion is shown as its answer, as on the back of a card.
-    const tex = escapeHtml(m.tex.replace(CLOZE_RE, "$1"));
+    // Inside maths a deletion is coloured with \htmlClass, since HTML
+    // there would break the formula.
+    const tex = escapeHtml(m.tex.replace(CLOZE_RE, (_, answer: string) => clozeTex(answer)));
     return m.display ? `\\[${tex.replace(/^\n+|\n+$/g, "")}\\]` : `\\(${tex}\\)`;
   });
 }

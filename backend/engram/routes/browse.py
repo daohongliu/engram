@@ -89,14 +89,29 @@ _MATH_RE = re.compile(r"(\\\(.*?\\\)|\\\[.*?\\\])", re.S)
 def _field_html(raw: str) -> str:
     """A field for display, with every cloze deletion shown and highlighted.
 
-    Inside maths a deletion is shown as plain text, as Anki does on the back
-    of a card, since HTML there would break the formula.
+    HTML inside maths would break the formula, so there a deletion is
+    coloured with ``\\htmlClass{cloze}``, which the frontend's KaTeX allows.
     """
     parts = _MATH_RE.split(clean_card_html(strip_payload(raw)))
     return "".join(
-        _CLOZE_RE.sub(r"\1", part) if i % 2 else _CLOZE_RE.sub(r'<span class="cloze">\1</span>', part)
+        _CLOZE_RE.sub(lambda m: _cloze_tex(m.group(1)), part)
+        if i % 2
+        else _CLOZE_RE.sub(r'<span class="cloze">\1</span>', part)
         for i, part in enumerate(parts)
     )
+
+
+def _cloze_tex(tex: str) -> str:
+    """Wrap TeX in the cloze colour, unless its braces do not balance."""
+    depth = 0
+    for ch in re.sub(r"\\.", "", tex):
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth < 0:
+                return tex
+    return f"\\htmlClass{{cloze}}{{{tex}}}" if depth == 0 and tex.strip() else tex
 
 
 def _note_rows(col, card_ids: list[int]) -> list[dict[str, Any]]:
