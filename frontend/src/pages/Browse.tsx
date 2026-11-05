@@ -47,6 +47,7 @@ export function Browse() {
   const tag = params.get("tag");
   const state = params.get("state");
   const urlText = params.get("text") ?? "";
+  const cardParam = params.get("card");
   const [text, setText] = useState(urlText);
   const query = useDebounced(text, 120);
   const [order, setOrder] = useLocalStorage("browse.order", "added");
@@ -136,6 +137,27 @@ export function Browse() {
     setCurrent(null);
     setSelected(new Set());
   }, [notes]);
+
+  // /browse?card=123 (from "Recently added") opens that card, then drops the
+  // parameter so the address does not keep reopening it.
+  const reveal = useRef<number | null>(null);
+  useEffect(() => {
+    if (!cardParam) return;
+    const id = Number(cardParam);
+    if (id) {
+      setCurrent(id);
+      reveal.current = id;
+    }
+    setParam("card", null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cardParam]);
+  useEffect(() => {
+    if (reveal.current === null) return;
+    const i = rows.findIndex((r) => r.id === reveal.current);
+    if (i < 0) return;
+    reveal.current = null;
+    list.current?.children[i]?.scrollIntoView({ block: "nearest" });
+  }, [rows]);
 
   const currentIndex = rows.findIndex((r) => r.id === current);
 

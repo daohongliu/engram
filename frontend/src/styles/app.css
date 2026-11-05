@@ -1948,6 +1948,11 @@ tr:hover .row-menu-btn,
 
 .recent-list a {
   color: var(--text);
+  text-decoration: none;
+}
+
+.recent-list a:hover {
+  color: var(--accent);
 }
 
 @media (max-width: 900px) {

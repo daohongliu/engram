@@ -20,6 +20,7 @@ const SHORT: Record<string, string> = {
 
 interface Added {
   noteId: number;
+  cardId: number;
   summary: string;
   deck: string;
 }
@@ -94,7 +95,7 @@ export function Add() {
     setBusy(true);
     try {
       const r = await api.addNote({ notetypeId: notetype.id, deckId, fields: fields.map((f) => f.value), tags });
-      setAdded((a) => [{ noteId: r.noteId, summary: inlineMarkdown(fields[0].value, 90), deck: deckName }, ...a].slice(0, 10));
+      setAdded((a) => [{ noteId: r.noteId, cardId: r.cardIds[0], summary: inlineMarkdown(fields[0].value, 90), deck: deckName }, ...a].slice(0, 10));
       toast.success(r.warning ? `Added. Note: ${r.warning}` : `Added to ${deckName.split("::").slice(-1)[0]}.`, {
         label: "Undo",
         run: () => void undoLast(),
@@ -203,7 +204,7 @@ export function Add() {
             <ul className="recent-list">
               {added.map((a) => (
                 <li key={a.noteId}>
-                  <span dangerouslySetInnerHTML={{ __html: a.summary }} />
+                  <a href={`/browse?card=${a.cardId}`} title="Open in Browse" dangerouslySetInnerHTML={{ __html: a.summary }} />
                 </li>
               ))}
             </ul>
