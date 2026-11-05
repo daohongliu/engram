@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, DeckOptions } from "../api";
+import { tip } from "../components/Tooltips";
 import { plural } from "../lib/format";
 import { isTyping, useKeys } from "../lib/keys";
 import { navigate } from "../lib/router";
@@ -91,7 +92,7 @@ export function DeckOverview({ deckId }: { deckId: number }) {
             <a className="btn" href={`/add?deck=${deck.id}`}>
               Add
             </a>
-            <button className="btn btn-primary" onClick={() => navigate(`/study/${deck.id}`)} disabled={!due}>
+            <button className="btn btn-primary" onClick={() => navigate(`/study/${deck.id}`)} disabled={!due} {...tip("", "S or Space")}>
               Study now
             </button>
           </div>

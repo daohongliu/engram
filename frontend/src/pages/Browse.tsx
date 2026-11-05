@@ -2,6 +2,7 @@ import { memo, MouseEvent, useCallback, useEffect, useMemo, useRef, useState } f
 import { api, BulkAction, DeckNode, Row } from "../api";
 import { CardHtml } from "../components/CardHtml";
 import { CardPanel, FLAG_NAMES } from "../components/CardPanel";
+import { tip } from "../components/Tooltips";
 import { DeckSelect } from "../components/DeckSelect";
 import { ArrowDown, ArrowUp, Chevron, Close, Search } from "../components/Icons";
 import { plural } from "../lib/format";
@@ -321,6 +322,7 @@ export function Browse() {
               placeholder="Search cards"
               spellCheck={false}
               aria-label="Search cards"
+              {...tip("", "/")}
             />
           </div>
           {filters.map((f) => (

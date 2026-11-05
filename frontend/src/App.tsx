@@ -4,6 +4,7 @@ import { HelpOverlay } from "./components/HelpOverlay";
 import { Auto, Gear, Mark, Moon, Search, Sun } from "./components/Icons";
 import { Lightbox } from "./components/Lightbox";
 import { Toasts } from "./components/Toasts";
+import { tip, Tooltips } from "./components/Tooltips";
 import { isTyping, MOD, useKeys } from "./lib/keys";
 import { match, navigate, useLinkInterception, useLocation } from "./lib/router";
 import { decks, settings } from "./lib/store";
@@ -96,13 +97,18 @@ export function App() {
         </a>
         <nav className="nav" aria-label="Main">
           {NAV.map((n) => (
-            <a key={n.href} href={n.href} className={section === n.href || (n.href === "/add" && path === "/write") ? "active" : ""}>
+            <a
+              key={n.href}
+              href={n.href}
+              className={section === n.href || (n.href === "/add" && path === "/write") ? "active" : ""}
+              {...tip("", `G then ${n.key.toUpperCase()}`)}
+            >
               {n.label}
             </a>
           ))}
         </nav>
         <div className="topbar-tools">
-          <button className="palette-trigger" onClick={() => setPalette(true)}>
+          <button className="palette-trigger" onClick={() => setPalette(true)} {...tip("Go to a page, deck or command")}>
             <Search width={14} height={14} />
             <span>Go to…</span>
             <kbd>{MOD} K</kbd>
@@ -117,6 +123,7 @@ export function App() {
       </header>
       <main className="page">{page}</main>
       <Toasts />
+      <Tooltips />
       <Lightbox />
       {palette && <CommandPalette onClose={() => setPalette(false)} onHelp={() => setHelp(true)} />}
       {help && <HelpOverlay onClose={() => setHelp(false)} />}

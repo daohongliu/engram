@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, CardDetail, NextCard, ReviewCard, UpcomingCard } from "../api";
 import { CardHtml } from "../components/CardHtml";
+import { tip } from "../components/Tooltips";
 import { CardInfo } from "../components/CardInfo";
 import { Close, Edit, Info, More } from "../components/Icons";
 import { NoteFields } from "../components/NoteFields";
@@ -135,7 +136,9 @@ export function Review({ deckId }: { deckId: number }) {
   return (
     <div className={`review ${upcoming ? "has-up-next" : ""}`}>
       <div className="review-top">
-        <a href={home}>← {data.deckName.split("::").join(" › ")}</a>
+        <a href={home} {...tip("Back", "Esc")}>
+          ← {data.deckName.split("::").join(" › ")}
+        </a>
         {card && card.flag > 0 && (
           <span>
             <span className="cell-flag" style={{ ["--c" as string]: `var(--flag-${card.flag})` }} />
@@ -158,22 +161,22 @@ export function Review({ deckId }: { deckId: number }) {
         <div className="review-bar">
           <div className="review-bar-inner">
             <div className="review-bar-left">
-              <button className="btn btn-ghost btn-sm" onClick={() => setPanel("edit")} title="Edit (E)">
+              <button className="btn btn-ghost btn-sm" onClick={() => setPanel("edit")} {...tip("Edit card", "E")}>
                 <Edit width={14} height={14} /> Edit
               </button>
-              <button className="btn btn-ghost btn-sm" onClick={() => setPanel(panel === "info" ? null : "info")} title="Card info (I)">
+              <button className="btn btn-ghost btn-sm" onClick={() => setPanel(panel === "info" ? null : "info")} {...tip("Card info", "I")}>
                 <Info width={14} height={14} /> Info
               </button>
             </div>
             <div className="review-center">
               {!revealed ? (
-                <button className="btn btn-lg show-answer" onClick={() => setRevealed(true)}>
+                <button className="btn btn-lg show-answer" onClick={() => setRevealed(true)} {...tip("", "Space or Enter")}>
                   Show answer
                 </button>
               ) : (
                 <div className="ratings">
                   {RATINGS.map((r) => (
-                    <button key={r.n} className={`rating rating-${r.tone}`} onClick={() => void rate(r.n)} title={`${r.label} (${r.n})`}>
+                    <button key={r.n} className={`rating rating-${r.tone}`} onClick={() => void rate(r.n)} {...tip("", r.n === 3 ? "3 or Space" : String(r.n))}>
                       <span className="rating-interval">{intervals[r.n - 1]}</span>
                       <span className="rating-label">{r.label}</span>
                     </button>
@@ -205,8 +208,12 @@ export function Review({ deckId }: { deckId: number }) {
               </button>
               {menu && (
                 <div className="menu" style={{ right: 0, bottom: 36 }} onClick={(e) => e.stopPropagation()}>
-                  <button onClick={() => void act("bury")}>Bury card</button>
-                  <button onClick={() => void act("suspend")}>Suspend card</button>
+                  <button onClick={() => void act("bury")}>
+                    Bury card <kbd className="menu-kbd">-</kbd>
+                  </button>
+                  <button onClick={() => void act("suspend")}>
+                    Suspend card <kbd className="menu-kbd">!</kbd>
+                  </button>
                   <hr />
                   {FLAGS.slice(1).map((name, i) => (
                     <button key={name} onClick={() => void act("flag", card.flag === i + 1 ? 0 : i + 1)}>
@@ -215,7 +222,9 @@ export function Review({ deckId }: { deckId: number }) {
                     </button>
                   ))}
                   <hr />
-                  <button onClick={() => void undoLast()}>Undo</button>
+                  <button onClick={() => void undoLast()}>
+                    Undo <kbd className="menu-kbd">U</kbd>
+                  </button>
                   <button className="danger" onClick={() => void act("delete")}>
                     Delete note
                   </button>

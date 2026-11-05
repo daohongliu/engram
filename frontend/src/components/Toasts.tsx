@@ -1,4 +1,6 @@
+import { MOD } from "../lib/keys";
 import { dismiss, useToasts } from "../lib/toast";
+import { tip } from "./Tooltips";
 
 export function Toasts() {
   const toasts = useToasts();
@@ -10,6 +12,7 @@ export function Toasts() {
           {t.action && (
             <button
               className="toast-action"
+              {...(t.action.label === "Undo" ? tip("", `${MOD} Z`) : {})}
               onClick={() => {
                 t.action!.run();
                 dismiss(t.id);

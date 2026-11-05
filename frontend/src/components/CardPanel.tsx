@@ -6,6 +6,7 @@ import { doneWithUndo } from "../lib/undo";
 import { CardInfo } from "./CardInfo";
 import { DeckSelect } from "./DeckSelect";
 import { Close, Maximize, Restore } from "./Icons";
+import { tip } from "./Tooltips";
 import { FieldValue, NoteFields } from "./NoteFields";
 
 type SaveState = "idle" | "dirty" | "saving" | "saved" | "error";
@@ -111,12 +112,12 @@ export function CardPanel({
               onClick={onToggleMaximize}
               aria-label={maximized ? "Restore editor" : "Maximise editor"}
               aria-pressed={maximized}
-              title={maximized ? "Restore (Esc)" : "Maximise"}
+              {...tip(maximized ? "Restore" : "Maximise", maximized ? "Esc" : undefined)}
             >
               {maximized ? <Restore /> : <Maximize />}
             </button>
           )}
-          <button className="icon-btn" onClick={onClose} aria-label="Close editor" title={maximized ? "Close" : "Close (Esc)"}>
+          <button className="icon-btn" onClick={onClose} aria-label="Close editor" {...tip("Close", maximized ? undefined : "Esc")}>
             <Close />
           </button>
         </div>

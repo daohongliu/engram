@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { api, Notetype } from "../api";
 import { CardPreview } from "../components/CardPreview";
 import { DeckSelect } from "../components/DeckSelect";
+import { tip } from "../components/Tooltips";
 import { FieldValue, NoteFields } from "../components/NoteFields";
 import { focusFirstEditor } from "../editor/MarkdownField";
 import { useLocalStorage } from "../lib/hooks";
@@ -187,7 +188,7 @@ export function Add() {
           <span className="muted" style={{ fontSize: 12 }}>
             <kbd>{MOD} Enter</kbd> to add
           </span>
-          <button className="btn btn-primary" onClick={() => void submit()} disabled={busy}>
+          <button className="btn btn-primary" onClick={() => void submit()} disabled={busy} {...tip("", `${MOD} Enter`)}>
             Add
           </button>
         </div>
