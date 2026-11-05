@@ -2745,3 +2745,13 @@ tr:hover .row-menu-btn,
 .menu-kbd {
   margin-left: auto;
 }
+
+/* Punctuation after inline maths, placed inside the formula's last part
+   so it never wraps alone. It undoes KaTeX's font and size. */
+.math-punct {
+  font-family: var(--content);
+  font-size: calc(1em / 1.21);
+  font-style: normal;
+  font-weight: normal;
+  letter-spacing: normal;
+}

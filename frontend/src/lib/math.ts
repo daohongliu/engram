@@ -95,6 +95,7 @@ export function texError(tex: string, display: boolean): string | null {
   }
 }
 
+const TRAILING_PUNCT = /^[.,;:!?)\]}’”"'…]+/;
 const SKIP = new Set(["SCRIPT", "STYLE", "TEXTAREA", "PRE", "CODE", "NOSCRIPT", "OPTION"]);
 const DELIMS: [string, string, boolean][] = [
   ["\\[", "\\]", true],
@@ -138,8 +139,11 @@ function typesetTextNode(node: Text, inline: boolean) {
         const span = document.createElement(asBlock ? "div" : "span");
         span.className = asBlock ? "math-block" : "math-inline";
         span.innerHTML = renderTex(text.slice(i + open.length, end), asBlock);
-        frag.append(span);
         i = end + close.length;
+        frag.append(span);
+        // Punctuation straight after inline maths stays on its line.
+        const punct = asBlock ? null : text.slice(i).match(TRAILING_PUNCT);
+        if (punct && attachPunctuation(span, punct[0], node.parentElement)) i += punct[0].length;
         last = i;
         matched = changed = true;
         break;
@@ -150,6 +154,28 @@ function typesetTextNode(node: Text, inline: boolean) {
   if (!changed) return;
   if (last < text.length) frag.append(text.slice(last));
   node.replaceWith(frag);
+}
+
+/**
+ * Put punctuation inside the last part of a formula, so a line never breaks
+ * between them. The browser may break after any part of a KaTeX formula,
+ * so the punctuation has to share that part's box; it keeps the font of
+ * the text around it.
+ */
+function attachPunctuation(math: HTMLElement, punct: string, context: HTMLElement | null): boolean {
+  const last = math.querySelector(".katex-html")?.lastElementChild;
+  if (!(last instanceof HTMLElement) || !last.classList.contains("base")) return false;
+  const mark = document.createElement("span");
+  mark.className = "math-punct";
+  mark.textContent = punct;
+  if (context?.isConnected) {
+    const style = getComputedStyle(context);
+    mark.style.fontFamily = style.fontFamily;
+    mark.style.fontWeight = style.fontWeight;
+    mark.style.fontStyle = style.fontStyle;
+  }
+  last.append(mark);
+  return true;
 }
 
 export function escapeHtml(s: string) {
