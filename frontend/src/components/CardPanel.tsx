@@ -5,7 +5,7 @@ import { toast } from "../lib/toast";
 import { doneWithUndo } from "../lib/undo";
 import { CardInfo } from "./CardInfo";
 import { DeckSelect } from "./DeckSelect";
-import { Close } from "./Icons";
+import { Close, Maximize, Restore } from "./Icons";
 import { FieldValue, NoteFields } from "./NoteFields";
 
 type SaveState = "idle" | "dirty" | "saving" | "saved" | "error";
@@ -17,10 +17,14 @@ export function CardPanel({
   cardId,
   onChanged,
   onClose,
+  maximized = false,
+  onToggleMaximize,
 }: {
   cardId: number;
   onChanged: (cardId: number, removed?: boolean) => void;
   onClose: () => void;
+  maximized?: boolean;
+  onToggleMaximize?: () => void;
 }) {
   const [card, setCard] = useState<CardDetail | null>(null);
   const [fields, setFields] = useState<FieldValue[]>([]);
@@ -100,9 +104,22 @@ export function CardPanel({
           {card.template !== "Card 1" && card.template !== card.notetype.name && <span>{card.template}</span>}
           <span className={`save-state ${save}`}>{saveText}</span>
         </div>
-        <button className="icon-btn" onClick={onClose} aria-label="Close editor" title="Close (Esc)">
-          <Close />
-        </button>
+        <div className="editor-head-actions">
+          {onToggleMaximize && (
+            <button
+              className="icon-btn"
+              onClick={onToggleMaximize}
+              aria-label={maximized ? "Restore editor" : "Maximise editor"}
+              aria-pressed={maximized}
+              title={maximized ? "Restore (Esc)" : "Maximise"}
+            >
+              {maximized ? <Restore /> : <Maximize />}
+            </button>
+          )}
+          <button className="icon-btn" onClick={onClose} aria-label="Close editor" title={maximized ? "Close" : "Close (Esc)"}>
+            <Close />
+          </button>
+        </div>
       </div>
       <div className="editor-body">
         <div className="editor-row">

@@ -1281,6 +1281,33 @@ tr:hover .row-menu-btn,
   grid-template-columns: 220px minmax(0, 1fr) minmax(360px, 34%);
 }
 
+/* The editor maximised: it takes the whole page, with its content centred. */
+.browse.has-editor.editor-max {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.browse.editor-max > .sidebar,
+.browse.editor-max > .results {
+  display: none;
+}
+
+.browse.editor-max .editor-pane {
+  border-left: none;
+}
+
+.browse.editor-max .editor-body {
+  width: 100%;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.editor-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
 .sidebar {
   overflow-y: auto;
   padding: 14px 10px 24px;
@@ -1830,6 +1857,14 @@ tr:hover .row-menu-btn,
     width: min(440px, 100%);
     z-index: 25;
     box-shadow: var(--shadow-lg);
+  }
+  .browse.has-editor.editor-max {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .browse.editor-max .editor-pane {
+    position: static;
+    width: auto;
+    box-shadow: none;
   }
 }
 

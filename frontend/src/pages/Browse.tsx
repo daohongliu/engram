@@ -53,6 +53,7 @@ export function Browse() {
   const [order, setOrder] = useLocalStorage("browse.order", "added");
   const [desc, setDesc] = useLocalStorage("browse.desc", true);
   const [view, setView] = useLocalStorage<"cards" | "notes">("browse.view", "cards");
+  const [maximized, setMaximized] = useLocalStorage("browse.editorMaximized", false);
   const notes = view === "notes";
   const unit = notes ? "note" : "card";
   const [rows, setRows] = useState<Row[]>([]);
@@ -222,6 +223,7 @@ export function Browse() {
     }
     if (e.key === "Escape") {
       if (selected.size) setSelected(new Set());
+      else if (maximized && current !== null) setMaximized(false);
       else setCurrent(null);
       return true;
     }
@@ -276,7 +278,7 @@ export function Browse() {
   }, []);
 
   return (
-    <div className={`browse ${current !== null ? "has-editor" : ""}`}>
+    <div className={`browse ${current !== null ? "has-editor" : ""} ${current !== null && maximized ? "editor-max" : ""}`}>
       <aside className="sidebar" aria-label="Filters">
         <div className="sidebar-section">
           <button className={`side-item ${!deck && !tag && !state ? "on" : ""}`} onClick={() => navigate(text ? `/browse?text=${encodeURIComponent(text)}` : "/browse", { replace: true })}>
@@ -381,7 +383,13 @@ export function Browse() {
         </div>
       </section>
 
-      {current !== null && <CardPanel cardId={current} onChanged={refreshRow} onClose={() => setCurrent(null)} />}
+      {current !== null && <CardPanel
+          cardId={current}
+          onChanged={refreshRow}
+          onClose={() => setCurrent(null)}
+          maximized={maximized}
+          onToggleMaximize={() => setMaximized(!maximized)}
+        />}
     </div>
   );
 }
