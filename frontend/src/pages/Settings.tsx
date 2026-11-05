@@ -63,7 +63,7 @@ export function SettingsPage() {
         <div className="segmented" role="radiogroup" aria-label="Editor style">
           {(
             [
-              ["split", "Preview beside"],
+              ["split", "Preview below"],
               ["live", "Render in place"],
             ] as [EditorMode, string][]
           ).map(([mode, label]) => (
@@ -74,7 +74,7 @@ export function SettingsPage() {
         </div>
         <p className="muted" style={{ fontSize: 13, marginTop: 8 }}>
           {editorMode === "split"
-            ? "You edit the text as typed, and a preview next to each field shows how it will look."
+            ? "You edit the text as typed, and a preview under each field shows how it will look."
             : "Formatting and maths render inside the field, and turn back into text where your cursor is."}
         </p>
       </section>

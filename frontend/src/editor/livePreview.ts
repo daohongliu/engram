@@ -1,6 +1,6 @@
 /**
  * Obsidian-style live preview for CodeMirror 6, and a plain source view
- * (`sourceView`) used when the preview sits beside the editor instead.
+ * (`sourceView`) used when the preview sits below the editor instead.
  *
  * Maths, emphasis, headings, links, images and clozes are
  * shown rendered while the cursor is elsewhere. When the cursor walks into
@@ -611,7 +611,7 @@ export function insertCloze(view: EditorView, n: number) {
 export const livePreview = [focusField, focusTracker, livePreviewField, mathTooltipField, dollarInput];
 
 /* ------------------------------------------------------------------ */
-/* Source mode: everything stays as typed, with a preview beside it    */
+/* Source mode: everything stays as typed, with a preview below it     */
 /* ------------------------------------------------------------------ */
 
 /** Colour maths and clozes in place, hiding nothing. */

@@ -102,7 +102,7 @@ export function NoteFields({
   );
 }
 
-/** The field as it will look on the card, beside its source. */
+/** The field as it will look on the card, below its source. */
 const FieldPreview = memo(function FieldPreview({ source }: { source: string }) {
   // Rendering lags behind typing when it has to, never the other way round.
   const html = renderFieldPreview(useDeferredValue(source));

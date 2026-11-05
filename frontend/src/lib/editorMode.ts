@@ -2,7 +2,7 @@ import { useSyncExternalStore } from "react";
 
 /**
  * How the field editor shows Markdown and maths:
- * - "split": the editor shows the source as typed, with a rendered preview beside it.
+ * - "split": the editor shows the source as typed, with a rendered preview below it.
  * - "live": formatting and maths render in place, and reappear as source under the cursor.
  */
 export type EditorMode = "split" | "live";

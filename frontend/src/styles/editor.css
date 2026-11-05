@@ -264,23 +264,11 @@
   color: var(--text-3);
 }
 
-/* Source beside preview */
-.note-fields {
-  container-type: inline-size;
-}
-
+/* Source above its preview */
 .note-field-body.split {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 8px;
-  align-items: stretch;
-}
-
-@container (max-width: 420px) {
-  .note-field-body.split {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 4px;
-  }
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .note-field-body.split .md-field .cm-editor {

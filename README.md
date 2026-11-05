@@ -25,7 +25,7 @@ info, bury, suspend and flag are one click or one key away. The keys are
 Anki's: space to show the answer, then 1–4.
 
 **Adding cards.** Fields are Markdown, and LaTeX goes between `$` signs. You
-edit each field as plain text, and a preview beside it shows the whole field
+edit each field as plain text, and a preview below it shows the whole field
 rendered, maths included, as you type. If you prefer, Settings can switch to
 rendering in place instead, where the source collapses into rendered maths
 when the cursor leaves it. `⌘⇧C` makes a cloze deletion. A preview of the

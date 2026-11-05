@@ -4,7 +4,6 @@ import { CardHtml } from "../components/CardHtml";
 import { CardPanel, FLAG_NAMES } from "../components/CardPanel";
 import { DeckSelect } from "../components/DeckSelect";
 import { ArrowDown, ArrowUp, Chevron, Close, Search } from "../components/Icons";
-import { useEditorMode } from "../lib/editorMode";
 import { plural } from "../lib/format";
 import { useDebounced, useLocalStorage } from "../lib/hooks";
 import { isTyping, useKeys } from "../lib/keys";
@@ -54,7 +53,6 @@ export function Browse() {
   const [order, setOrder] = useLocalStorage("browse.order", "added");
   const [desc, setDesc] = useLocalStorage("browse.desc", true);
   const [view, setView] = useLocalStorage<"cards" | "notes">("browse.view", "cards");
-  const editorMode = useEditorMode();
   const notes = view === "notes";
   const unit = notes ? "note" : "card";
   const [rows, setRows] = useState<Row[]>([]);
@@ -278,7 +276,7 @@ export function Browse() {
   }, []);
 
   return (
-    <div className={`browse ${current !== null ? "has-editor" : ""} ${editorMode === "split" ? "wide-editor" : ""}`}>
+    <div className={`browse ${current !== null ? "has-editor" : ""}`}>
       <aside className="sidebar" aria-label="Filters">
         <div className="sidebar-section">
           <button className={`side-item ${!deck && !tag && !state ? "on" : ""}`} onClick={() => navigate(text ? `/browse?text=${encodeURIComponent(text)}` : "/browse", { replace: true })}>
