@@ -335,3 +335,40 @@ def test_notes_mode_cloze_inside_maths(client):
     assert "{{c" not in q
     # No highlighting markup inside a formula, where it would break the maths.
     assert all("<span" not in m for m in __import__("re").findall(r"\\\(.*?\\\)", q))
+
+
+def test_retagging_right_after_an_edit(client, deck_ids):
+    # Anki folds consecutive edits of one note into a single undo step, so the
+    # step number read after the second edit is not on the undo stack. Folding
+    # the tag clean-up into it used to fail with "target undo op not found".
+    basic = client.get("/api/notetypes").json()[0]
+    did = deck_ids["Maths::Analysis"]
+    nid = client.post(
+        "/api/notes", json={"notetypeId": basic["id"], "deckId": did, "fields": ["Q", "A"], "tags": ["draft"]}
+    ).json()["noteId"]
+    assert client.put(f"/api/notes/{nid}", json={"fields": ["Q", "A2"], "tags": ["draft"]}).status_code == 200
+    # Adding a tag that already exists elsewhere: nothing becomes unused.
+    r = client.put(f"/api/notes/{nid}", json={"fields": ["Q", "A2"], "tags": ["draft", "theorem"]})
+    assert r.status_code == 200
+    # Replacing a tag: "draft" becomes unused and is cleared.
+    r = client.put(f"/api/notes/{nid}", json={"fields": ["Q", "A3"], "tags": ["final"]})
+    assert r.status_code == 200
+    assert "draft" not in {t["name"] for t in client.get("/api/tags").json()}
+    # Undo still restores the note together with its old tag.
+    client.post("/api/undo")
+    note = client.get(f"/api/notes/{nid}").json()
+    assert "draft" in note["tags"]
+    assert "draft" in {t["name"] for t in client.get("/api/tags").json()}
+
+
+def test_studying_another_deck_after_undo(client, deck_ids):
+    # After an undo, the last step number belongs to the undone change, which
+    # is no longer on the undo stack; selecting a deck used to fold into it
+    # and fail with "target undo op not found".
+    first, second = deck_ids["Maths::Analysis"], deck_ids["Maths::Probability"]
+    assert client.get(f"/api/review/{first}/next").status_code == 200
+    cid = client.get("/api/search", params={"deck": "Maths::Analysis"}).json()["rows"][0]["id"]
+    client.post("/api/cards/bulk", json={"ids": [cid], "action": "suspend"})
+    assert client.post("/api/undo").json()["undid"] == "Suspend"
+    assert client.get(f"/api/review/{second}/next").status_code == 200
+    assert client.get("/api/undo").json()["undo"] != "Select Deck"

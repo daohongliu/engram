@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Iterator
 
 from anki.collection import Collection
+from anki.errors import InvalidInput
 
 DEFAULT_PATH = Path(__file__).resolve().parents[2] / "data" / "collection.anki2"
 
@@ -59,8 +60,26 @@ def drop_unused_tags(col: Collection) -> None:
     """
     step = col.undo_status().last_step
     col.tags.clear_unused_tags()
-    if step:
-        col.merge_undo_entries(step)
+    fold_into_step(col, step)
+
+
+def fold_into_step(col: Collection, step: int) -> None:
+    """Merge the undo entries added since ``step`` into the change before them.
+
+    ``undo_status().last_step`` is a counter, not always an entry on the undo
+    stack: Anki folds consecutive edits of the same note into one entry, and an
+    undo moves the entry it reverts to the redo stack. In those cases the
+    newest entry still on the stack has a lower number, so step back to it.
+    If none is found nearby, the new entries simply stay separate undo steps.
+    """
+    if not step:
+        return
+    for target in range(step, max(0, step - 50), -1):
+        try:
+            col.merge_undo_entries(target)
+            return
+        except InvalidInput:
+            continue
 
 
 def _has_unused_tags(col: Collection) -> bool:
