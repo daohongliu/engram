@@ -897,10 +897,18 @@ tr:hover .row-menu-btn,
 
 /* ------------------------------ review ------------------------------ */
 
+/* The page fits the window exactly: the top bar and the rating bar stay
+   put, and only the card scrolls, between them. */
 .review {
-  display: flex;
-  flex-direction: column;
-  min-height: calc(100vh - var(--topbar));
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  height: calc(100dvh - var(--topbar));
+  overflow: hidden;
+}
+
+.review > :not(.up-next) {
+  grid-column: 1;
 }
 
 .review-top {
@@ -917,10 +925,12 @@ tr:hover .row-menu-btn,
 }
 
 .review-body {
-  flex: 1;
   display: flex;
   justify-content: center;
-  padding: 24px 24px 160px;
+  align-items: flex-start;
+  padding: 24px 24px 64px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .card-sheet {
@@ -974,13 +984,9 @@ tr:hover .row-menu-btn,
 }
 
 .review-bar {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  grid-row: 3;
   z-index: 10;
-  background: color-mix(in srgb, var(--surface) 94%, transparent);
-  backdrop-filter: blur(10px);
+  background: var(--surface);
   border-top: 1px solid var(--border);
 }
 
@@ -1135,14 +1141,10 @@ tr:hover .row-menu-btn,
 
 /* The cards still waiting, down the right edge. Picking one studies it now. */
 .up-next {
-  --up-next: 288px;
   display: none;
-  position: fixed;
-  top: var(--topbar);
-  right: 0;
-  bottom: 0;
-  width: var(--up-next);
-  z-index: 5;
+  grid-column: 2;
+  grid-row: 1 / -1;
+  min-height: 0;
   flex-direction: column;
   padding: 14px 8px 16px;
   border-left: 1px solid var(--border);
@@ -1232,11 +1234,8 @@ tr:hover .row-menu-btn,
   .up-next {
     display: flex;
   }
-  .review.has-up-next .review-body {
-    padding-right: calc(288px + 24px);
-  }
-  .review.has-up-next .review-bar {
-    right: 288px;
+  .review.has-up-next {
+    grid-template-columns: minmax(0, 1fr) 288px;
   }
 }
 

@@ -29,6 +29,12 @@ export function Review({ deckId }: { deckId: number }) {
   const [panel, setPanel] = useState<null | "edit" | "info">(null);
   const [menu, setMenu] = useState(false);
   const shownAt = useRef(Date.now());
+  const body = useRef<HTMLDivElement>(null);
+  // Each card starts at the top of the card area.
+  const cardId = data && !data.done ? data.card.id : null;
+  useEffect(() => {
+    body.current?.scrollTo({ top: 0 });
+  }, [cardId]);
   const busy = useRef(false);
 
   const load = useCallback(async (cardId?: number) => {
@@ -148,7 +154,7 @@ export function Review({ deckId }: { deckId: number }) {
       </div>
 
       {card ? (
-        <div className="review-body">
+        <div className="review-body" ref={body}>
           <div key={card.id} className="card-sheet is-arriving">
             <CardFace card={card} revealed={revealed} />
           </div>
