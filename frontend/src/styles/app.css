@@ -929,7 +929,7 @@ tr:hover .row-menu-btn,
   font-family: var(--content);
   font-size: 22px;
   line-height: 1.55;
-  text-align: center;
+  text-align: left;
   font-optical-sizing: auto;
 }
 
@@ -2126,7 +2126,7 @@ tr:hover .row-menu-btn,
   font-family: var(--content);
   font-size: 16px;
   line-height: 1.5;
-  text-align: center;
+  text-align: left;
 }
 
 .preview-card .card-html img {
