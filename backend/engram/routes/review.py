@@ -23,7 +23,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from ..cardinfo import format_secs, memory_from_data, render_card
-from ..store import collection
+from ..store import collection, fold_into_step
 
 router = APIRouter(prefix="/api/review", tags=["review"])
 
@@ -45,8 +45,7 @@ def _select(col, deck_id: int) -> None:
         return
     step = col.undo_status().last_step
     col.decks.select(deck_id)
-    if step:
-        col.merge_undo_entries(step)
+    fold_into_step(col, step)
 
 
 def _roots(col, deck_id: int) -> list[int]:
