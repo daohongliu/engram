@@ -263,3 +263,49 @@
   font-size: 0.78em;
   color: var(--text-3);
 }
+
+/* Source beside preview */
+.note-fields {
+  container-type: inline-size;
+}
+
+.note-field-body.split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+  align-items: stretch;
+}
+
+@container (max-width: 420px) {
+  .note-field-body.split {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+}
+
+.note-field-body.split .md-field .cm-editor {
+  font-size: 15px;
+}
+
+.field-preview {
+  min-width: 0;
+  min-height: 42px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  font-family: var(--content);
+  font-size: 17px;
+  line-height: 1.55;
+  overflow-x: auto;
+}
+
+.field-preview .math-block {
+  text-align: center;
+}
+
+.field-preview-empty {
+  color: var(--text-3);
+  font-family: var(--ui);
+  font-size: 13px;
+}

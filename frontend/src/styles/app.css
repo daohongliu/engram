@@ -1281,6 +1281,11 @@ tr:hover .row-menu-btn,
   grid-template-columns: 220px minmax(0, 1fr) minmax(360px, 34%);
 }
 
+/* Fields with a preview beside them need more room. */
+.browse.has-editor.wide-editor {
+  grid-template-columns: 220px minmax(0, 1fr) minmax(440px, 44%);
+}
+
 .sidebar {
   overflow-y: auto;
   padding: 14px 10px 24px;
@@ -1819,7 +1824,8 @@ tr:hover .row-menu-btn,
 
 @media (max-width: 1100px) {
   .browse,
-  .browse.has-editor {
+  .browse.has-editor,
+  .browse.has-editor.wide-editor {
     grid-template-columns: 200px minmax(0, 1fr);
   }
   .editor-pane {
@@ -1830,6 +1836,9 @@ tr:hover .row-menu-btn,
     width: min(440px, 100%);
     z-index: 25;
     box-shadow: var(--shadow-lg);
+  }
+  .wide-editor .editor-pane {
+    width: min(600px, 100%);
   }
 }
 

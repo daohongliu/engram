@@ -1,5 +1,6 @@
 /**
- * Obsidian-style live preview for CodeMirror 6.
+ * Obsidian-style live preview for CodeMirror 6, and a plain source view
+ * (`sourceView`) used when the preview sits beside the editor instead.
  *
  * Maths, emphasis, headings, links, images and clozes are
  * shown rendered while the cursor is elsewhere. When the cursor walks into
@@ -608,6 +609,46 @@ export function insertCloze(view: EditorView, n: number) {
 }
 
 export const livePreview = [focusField, focusTracker, livePreviewField, mathTooltipField, dollarInput];
+
+/* ------------------------------------------------------------------ */
+/* Source mode: everything stays as typed, with a preview beside it    */
+/* ------------------------------------------------------------------ */
+
+/** Colour maths and clozes in place, hiding nothing. */
+function buildSource(state: EditorState): DecorationSet {
+  const text = state.doc.toString();
+  const code = codeRanges(state);
+  const decos: Range<Decoration>[] = [];
+  for (const m of findMath(text, code)) {
+    decos.push(Decoration.mark({ class: "cm-math-src" }).range(m.from, m.to));
+    decos.push(Decoration.mark({ class: "cm-math-delim" }).range(m.from, m.from + m.open));
+    decos.push(Decoration.mark({ class: "cm-math-delim" }).range(m.to - m.close, m.to));
+  }
+  const inCode = (pos: number) => code.some(([a, b]) => a <= pos && pos < b);
+  for (const m of text.matchAll(CLOZE_RE)) {
+    const from = m.index!;
+    const to = from + m[0].length;
+    if (inCode(from)) continue;
+    const openLen = 3 + m[1].length + 2;
+    const hintAt = findHintSeparator(m[2]);
+    const answerEnd = from + openLen + (hintAt >= 0 ? hintAt : m[2].length);
+    const tone = `cm-cloze-${((Number(m[1]) - 1) % 6) + 1}`;
+    decos.push(Decoration.mark({ class: "cm-cloze-syntax" }).range(from, from + openLen));
+    decos.push(Decoration.mark({ class: "cm-cloze-syntax" }).range(answerEnd, to));
+    if (answerEnd > from + openLen) decos.push(Decoration.mark({ class: `cm-cloze ${tone}` }).range(from + openLen, answerEnd));
+  }
+  return Decoration.set(decos, true);
+}
+
+const sourceField = StateField.define<DecorationSet>({
+  create: (state) => buildSource(state),
+  update(value, tr) {
+    return tr.docChanged || syntaxTree(tr.startState) !== syntaxTree(tr.state) ? buildSource(tr.state) : value;
+  },
+  provide: (f) => EditorView.decorations.from(f),
+});
+
+export const sourceView = [sourceField, dollarInput];
 
 /** For tests. */
 export function decorationsFor(doc: string, cursor: number | null) {

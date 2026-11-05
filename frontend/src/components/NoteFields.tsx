@@ -1,6 +1,9 @@
-import { useRef } from "react";
+import { memo, useDeferredValue, useRef } from "react";
 import { MarkdownField, MarkdownFieldHandle } from "../editor/MarkdownField";
 import { highestCloze } from "../editor/livePreview";
+import { useEditorMode } from "../lib/editorMode";
+import { renderFieldPreview } from "../lib/fieldPreview";
+import { CardHtml } from "./CardHtml";
 import { TagInput } from "./TagInput";
 
 export interface FieldValue {
@@ -38,6 +41,7 @@ export function NoteFields({
   const editors = useRef<(MarkdownFieldHandle | null)[]>([]);
   const picker = useRef<HTMLInputElement>(null);
   const pickFor = useRef(0);
+  const live = useEditorMode() === "live";
 
   return (
     <div className="note-fields">
@@ -57,18 +61,23 @@ export function NoteFields({
               Add image
             </button>
           </div>
-          <MarkdownField
-            ref={(h) => {
-              editors.current[i] = h;
-            }}
-            value={f.value}
-            onChange={(v) => onField(i, v)}
-            placeholder={PLACEHOLDERS[f.name] ?? ""}
-            autoFocus={autoFocus && i === 0}
-            onSubmit={onSubmit}
-            clozeBase={clozeBase}
-            label={f.name}
-          />
+          <div className={live ? "note-field-body" : "note-field-body split"}>
+            <MarkdownField
+              key={live ? "live" : "source"}
+              ref={(h) => {
+                editors.current[i] = h;
+              }}
+              value={f.value}
+              onChange={(v) => onField(i, v)}
+              placeholder={PLACEHOLDERS[f.name] ?? ""}
+              autoFocus={autoFocus && i === 0}
+              onSubmit={onSubmit}
+              clozeBase={clozeBase}
+              label={f.name}
+              live={live}
+            />
+            {!live && <FieldPreview source={f.value} />}
+          </div>
         </div>
       ))}
       <input
@@ -92,3 +101,14 @@ export function NoteFields({
     </div>
   );
 }
+
+/** The field as it will look on the card, beside its source. */
+const FieldPreview = memo(function FieldPreview({ source }: { source: string }) {
+  // Rendering lags behind typing when it has to, never the other way round.
+  const html = renderFieldPreview(useDeferredValue(source));
+  return (
+    <div className="field-preview" aria-label="Preview">
+      {html ? <CardHtml html={html} /> : <span className="field-preview-empty">Preview</span>}
+    </div>
+  );
+});

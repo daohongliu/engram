@@ -24,10 +24,12 @@ to study it now, and the card you skipped stays first in line. Edit, card
 info, bury, suspend and flag are one click or one key away. The keys are
 Anki's: space to show the answer, then 1–4.
 
-**Adding cards.** Fields are Markdown with live preview. Type `$` and write
-LaTeX; a preview appears under the expression as you type, and the source
-collapses into rendered maths when the cursor leaves it. `⌘⇧C` makes a cloze
-deletion. A preview of the resulting cards sits beside the form.
+**Adding cards.** Fields are Markdown, and LaTeX goes between `$` signs. You
+edit each field as plain text, and a preview beside it shows the whole field
+rendered, maths included, as you type. If you prefer, Settings can switch to
+rendering in place instead, where the source collapses into rendered maths
+when the cursor leaves it. `⌘⇧C` makes a cloze deletion. A preview of the
+resulting cards sits beside the form.
 
 **Images.** Paste a screenshot into a field, drop image files in, or use
 "Add image". Drag an image's corner in the editor to resize it; the width is
@@ -114,7 +116,7 @@ backend/engram/
   seed.py         the demo collection
   routes/         decks, review, browse, notes, stats, media and settings
 frontend/src/
-  editor/         CodeMirror 6 live preview for maths, formatting, clozes, images
+  editor/         CodeMirror 6 field editor: source view, or live preview in place
   pages/          Decks, DeckOverview, Review, Add, Browse, Stats, Settings
   components/     card editor, card info, charts, command menu
   lib/            KaTeX rendering, API stores, keyboard handling

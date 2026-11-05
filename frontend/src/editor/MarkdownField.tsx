@@ -8,7 +8,7 @@ import { tags as t } from "@lezer/highlight";
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import { api } from "../api";
 import { toast } from "../lib/toast";
-import { deleteDollarPair, highestCloze, insertCloze, livePreview, wrapWith } from "./livePreview";
+import { deleteDollarPair, highestCloze, insertCloze, livePreview, sourceView, wrapWith } from "./livePreview";
 
 const highlight = HighlightStyle.define([
   { tag: t.heading1, fontSize: "1.3em", fontWeight: "600" },
@@ -36,6 +36,8 @@ export interface MarkdownFieldProps {
   clozeBase?: () => number;
   label?: string;
   compact?: boolean;
+  /** Render formatting and maths in place. Otherwise the source is shown as typed. */
+  live?: boolean;
 }
 
 export interface MarkdownFieldHandle {
@@ -84,7 +86,8 @@ async function uploadInto(v: EditorView, files: File[], at: number) {
 }
 
 /**
- * A Markdown editor with live preview. Uncontrolled internally (CodeMirror
+ * A Markdown editor, with live preview when `live` is set (read once, when
+ * the editor is created). Uncontrolled internally (CodeMirror
  * owns the text) but follows `value` when it changes from outside.
  */
 export const MarkdownField = forwardRef<MarkdownFieldHandle, MarkdownFieldProps>(function MarkdownField(props, ref) {
@@ -120,7 +123,7 @@ export const MarkdownField = forwardRef<MarkdownFieldHandle, MarkdownFieldProps>
         syntaxHighlighting(highlight),
         EditorView.lineWrapping,
         closeBrackets(),
-        livePreview,
+        props.live ? livePreview : sourceView,
         placeholderExt(props.placeholder ?? ""),
         Prec.high(
           keymap.of([

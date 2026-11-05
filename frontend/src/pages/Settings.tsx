@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
+import { EditorMode, setEditorMode, useEditorMode } from "../lib/editorMode";
 import { renderTex, setPreamble } from "../lib/math";
 import { settings as settingsStore } from "../lib/store";
 import { setTheme, Theme, useTheme } from "../lib/theme";
@@ -10,6 +11,7 @@ const SAMPLE = String.raw`f: \R \to \R,\quad \norm{x}_2,\quad \abs{a-b} < \eps`;
 export function SettingsPage() {
   const s = settingsStore.use();
   const theme = useTheme();
+  const editorMode = useEditorMode();
   const [preamble, setPre] = useState(s?.preamble ?? "");
   const [sample, setSample] = useState(SAMPLE);
   const [err, setErr] = useState<string | null>(null);
@@ -53,6 +55,28 @@ export function SettingsPage() {
             </button>
           ))}
         </div>
+      </section>
+
+      <section className="panel settings-section">
+        <h2>Editor</h2>
+        <p>How fields show Markdown and maths while you type.</p>
+        <div className="segmented" role="radiogroup" aria-label="Editor style">
+          {(
+            [
+              ["split", "Preview beside"],
+              ["live", "Render in place"],
+            ] as [EditorMode, string][]
+          ).map(([mode, label]) => (
+            <button key={mode} role="radio" aria-checked={editorMode === mode} className={editorMode === mode ? "on" : ""} onClick={() => setEditorMode(mode)}>
+              {label}
+            </button>
+          ))}
+        </div>
+        <p className="muted" style={{ fontSize: 13, marginTop: 8 }}>
+          {editorMode === "split"
+            ? "You edit the text as typed, and a preview next to each field shows how it will look."
+            : "Formatting and maths render inside the field, and turn back into text where your cursor is."}
+        </p>
       </section>
 
       <section className="panel settings-section">
