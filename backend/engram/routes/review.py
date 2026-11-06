@@ -1,9 +1,9 @@
 """Studying: the next card to show, what comes after it, and answering.
 
-A study session is either one deck (with its subdecks) or every deck at
-once, which is deck id 0 (``ALL``). Anki builds its queue for one deck at a
-time, so for every deck we ask each top-level deck for its queue and
-interleave them, keeping each deck's own order.
+A study session covers one deck (with its subdecks), a chosen set of decks
+("12,34" in the URL), or every deck at once, which is deck id 0 (``ALL``).
+Anki builds its queue for one deck at a time, so for several decks we ask
+each one for its queue and interleave them, keeping each deck's own order.
 
 Anki only accepts an answer for the card at the front of its queue. To let
 you jump ahead to any waiting card, an answer for another card first resets
@@ -48,9 +48,26 @@ def _select(col, deck_id: int) -> None:
     fold_into_step(col, step)
 
 
-def _roots(col, deck_id: int) -> list[int]:
-    if deck_id != ALL:
-        return [deck_id]
+def _parse(spec: str) -> list[int]:
+    """Deck ids from the URL: "0" for every deck, "12", or "12,34"."""
+    try:
+        ids = [int(part) for part in spec.split(",") if part.strip()]
+    except ValueError:
+        raise HTTPException(404, "No such deck.") from None
+    if not ids:
+        raise HTTPException(404, "No such deck.")
+    return [ALL] if ALL in ids else list(dict.fromkeys(ids))
+
+
+def _chosen(col, ids: list[int]) -> list[int]:
+    """The chosen decks, leaving out any inside another chosen deck."""
+    names = {i: col.decks.name(i) for i in ids}
+    return [i for i in ids if not any(names[i].startswith(names[j] + "::") for j in ids if j != i)]
+
+
+def _roots(col, ids: list[int]) -> list[int]:
+    if ids != [ALL]:
+        return _chosen(col, ids)
     return [
         n.deck_id
         for n in col.sched.deck_due_tree().children
@@ -58,14 +75,14 @@ def _roots(col, deck_id: int) -> list[int]:
     ]
 
 
-def _gather(col, deck_id: int) -> tuple[list[tuple[int, Any]], dict[str, int]]:
+def _gather(col, ids: list[int]) -> tuple[list[tuple[int, Any]], dict[str, int]]:
     """Cards waiting in the session, in the order they will be shown.
 
     Returns ``(root deck id, queued card)`` pairs and the remaining counts.
     """
     lists: list[list[tuple[int, Any]]] = []
     counts = {"new": 0, "learn": 0, "review": 0}
-    for root in _roots(col, deck_id):
+    for root in _roots(col, ids):
         _select(col, root)
         q = col.sched.get_queued_cards(fetch_limit=UPCOMING + 1)
         counts["new"] += q.new_count
@@ -90,24 +107,30 @@ def _interleave(lists: list[list[tuple[int, Any]]]) -> list[tuple[int, Any]]:
     return out
 
 
-def _session_name(col, deck_id: int) -> str:
-    return "All decks" if deck_id == ALL else col.decks.name(deck_id)
+def _session_name(col, ids: list[int]) -> str:
+    if ids == [ALL]:
+        return "All decks"
+    roots = _chosen(col, ids)
+    if len(roots) == 1:
+        return col.decks.name(roots[0])
+    return ", ".join(col.decks.name(i).split("::")[-1] for i in roots)
 
 
-def _check_deck(col, deck_id: int) -> None:
-    if deck_id != ALL and not col.decks.get(deck_id, default=False):
+def _check_decks(col, ids: list[int]) -> None:
+    if ids != [ALL] and not all(col.decks.get(i, default=False) for i in ids):
         raise HTTPException(404, "No such deck.")
 
 
-@router.get("/{deck_id}/next")
-def next_card(deck_id: int, cardId: int | None = None) -> dict[str, Any]:
+@router.get("/{decks}/next")
+def next_card(decks: str, cardId: int | None = None) -> dict[str, Any]:
     """The card to show now: ``cardId`` if it is waiting, otherwise the next one."""
     with collection() as col:
-        _check_deck(col, deck_id)
-        waiting, counts = _gather(col, deck_id)
-        name = _session_name(col, deck_id)
+        ids = _parse(decks)
+        _check_decks(col, ids)
+        waiting, counts = _gather(col, ids)
+        name = _session_name(col, ids)
         if not waiting:
-            return {"done": True, "deckName": name, "counts": counts, "congrats": _congrats(col, deck_id)}
+            return {"done": True, "deckName": name, "counts": counts, "congrats": _congrats(col, ids)}
 
         index = next((i for i, (_, qc) in enumerate(waiting) if qc.card.id == cardId), 0)
         current = waiting[index][1]
@@ -153,11 +176,11 @@ def _upcoming(col, qc) -> dict[str, Any]:
     }
 
 
-def _congrats(col, deck_id: int) -> dict[str, Any]:
-    if deck_id == ALL:
+def _congrats(col, ids: list[int]) -> dict[str, Any]:
+    if ids == [ALL]:
         roots = [n.deck_id for n in col.sched.deck_due_tree().children]
     else:
-        roots = [deck_id]
+        roots = _chosen(col, ids)
     learn = 0
     secs: list[int] = []
     review = new = buried = False
@@ -197,11 +220,12 @@ class Answer(BaseModel):
 _RATINGS = {1: CardAnswer.AGAIN, 2: CardAnswer.HARD, 3: CardAnswer.GOOD, 4: CardAnswer.EASY}
 
 
-@router.post("/{deck_id}/answer")
-def answer(deck_id: int, body: Answer) -> dict[str, Any]:
+@router.post("/{decks}/answer")
+def answer(decks: str, body: Answer) -> dict[str, Any]:
     with collection() as col:
-        _check_deck(col, deck_id)
-        waiting, _ = _gather(col, deck_id)
+        ids = _parse(decks)
+        _check_decks(col, ids)
+        waiting, _ = _gather(col, ids)
         root = next((r for r, qc in waiting if qc.card.id == body.cardId), None)
         if root is None:
             raise HTTPException(409, "That card is no longer waiting for an answer.")

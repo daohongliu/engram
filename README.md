@@ -16,10 +16,11 @@ deck, collapsible subdecks, and a menu for studying, adding, browsing,
 renaming and deleting. Clicking a deck opens its overview, with a Study button
 and the deck's daily limits and desired retention.
 
-**Reviewing.** Study one deck, or press **Study all** to get cards from every
-deck at once, mixed together and each deck keeping its own daily limits. The
-card is centred, with the answer buttons and their next intervals in a bar at
-the bottom. On the right, **Up next** lists the cards still waiting; click one
+**Reviewing.** Study one deck, tick several decks on the Decks page and study
+them together, or press **Study all** to get cards from every deck at once.
+Cards from different decks are mixed together, each deck keeping its own daily
+limits. The answer buttons and their next intervals sit in a bar at the
+bottom. On the right, **Up next** lists the cards still waiting; click one
 to study it now, and the card you skipped stays first in line. Edit, card
 info, bury, suspend and flag are one click or one key away. The keys are
 Anki's: space to show the answer, then 1–4.

@@ -612,7 +612,8 @@ kbd {
   border-bottom: 1px solid var(--border);
 }
 
-.deck-table th:first-child {
+.deck-table th:first-child,
+.deck-table th.col-pick + th {
   text-align: left;
 }
 
@@ -634,6 +635,39 @@ kbd {
 
 .deck-table .deck-name {
   text-align: left;
+}
+
+/* Ticks for studying several decks together: faint until wanted. */
+.deck-table .col-pick {
+  width: 36px;
+  padding: 0 0 0 14px;
+  text-align: left;
+}
+
+.col-pick input {
+  display: block;
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+  opacity: 0.3;
+  transition: opacity 0.12s;
+}
+
+.deck-table tr:hover .col-pick input,
+.deck-table.is-picking .col-pick input,
+.col-pick input:focus-visible {
+  opacity: 1;
+}
+
+.col-pick input:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.deck-table tbody tr.is-picked {
+  background: color-mix(in srgb, var(--accent-soft) 60%, transparent);
 }
 
 .deck-name-inner {

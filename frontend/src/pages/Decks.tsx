@@ -13,6 +13,8 @@ export function Decks() {
   const stats = useAsync(() => api.stats(), []);
   const [creating, setCreating] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useLocalStorage<number[]>("decks.collapsed", []);
+  // Decks ticked for studying together; remembered, since it is often the same set.
+  const [picked, setPicked] = useLocalStorage<number[]>("decks.picked", []);
 
   useEffect(() => {
     void decksStore.refresh();
@@ -44,6 +46,27 @@ export function Decks() {
   const totals = data?.totals;
   const due = totals ? totals.new + totals.learn + totals.review : 0;
 
+  // Every deck with its parents, to tell when a ticked parent covers a deck.
+  const byId = new Map<number, { deck: DeckNode; parents: number[] }>();
+  const index = (nodes: DeckNode[], parents: number[]) => {
+    for (const d of nodes) {
+      byId.set(d.id, { deck: d, parents });
+      index(d.children, [...parents, d.id]);
+    }
+  };
+  index(data?.decks ?? [], []);
+  const chosen = picked.filter((id) => byId.has(id) && !byId.get(id)!.parents.some((p) => picked.includes(p)));
+  const coveredBy = (id: number) => byId.get(id)?.parents.some((p) => chosen.includes(p)) ?? false;
+  const chosenDue = chosen.reduce((n, id) => {
+    const d = byId.get(id)!.deck;
+    return n + d.new + d.learn + d.review;
+  }, 0);
+  const pick = (id: number) => {
+    if (chosen.includes(id)) setPicked(chosen.filter((x) => x !== id));
+    // Ticking a deck takes in its subdecks, so they need no ticks of their own.
+    else setPicked([...chosen.filter((x) => !byId.get(x)?.parents.includes(id)), id]);
+  };
+
   return (
     <div className="container">
       <div className="page-head">
@@ -62,9 +85,20 @@ export function Decks() {
           <button className="btn" onClick={() => setCreating("")}>
             <Plus /> Create deck
           </button>
-          <button className="btn btn-primary" onClick={() => navigate("/study/all")} disabled={!due} title="Study cards from every deck">
-            Study all
-          </button>
+          {chosen.length > 0 ? (
+            <>
+              <button className="btn btn-ghost" onClick={() => setPicked([])}>
+                Clear
+              </button>
+              <button className="btn btn-primary" onClick={() => navigate(`/study/${chosen.join(",")}`)} disabled={!chosenDue}>
+                {chosen.length === 1 ? "Study 1 deck" : `Study ${chosen.length} decks`}
+              </button>
+            </>
+          ) : (
+            <button className="btn btn-primary" onClick={() => navigate("/study/all")} disabled={!due} title="Study cards from every deck">
+              Study all
+            </button>
+          )}
         </div>
       </div>
 
@@ -75,9 +109,10 @@ export function Decks() {
             <p>Create a deck, then add cards to it.</p>
           </div>
         ) : (
-          <table className="deck-table">
+          <table className={`deck-table ${chosen.length ? "is-picking" : ""}`}>
             <thead>
               <tr>
+                <th className="col-pick" />
                 <th>Deck</th>
                 <th className="col-count">New</th>
                 <th className="col-count">Learn</th>
@@ -93,6 +128,9 @@ export function Decks() {
                   depth={depth}
                   open={!collapsed.includes(deck.id)}
                   onToggle={() => toggle(deck.id)}
+                  picked={chosen.includes(deck.id)}
+                  covered={coveredBy(deck.id)}
+                  onPick={() => pick(deck.id)}
                 />
               ))}
             </tbody>
@@ -149,7 +187,23 @@ export function Decks() {
   );
 }
 
-function DeckRow({ deck, depth, open, onToggle }: { deck: DeckNode; depth: number; open: boolean; onToggle: () => void }) {
+function DeckRow({
+  deck,
+  depth,
+  open,
+  onToggle,
+  picked,
+  covered,
+  onPick,
+}: {
+  deck: DeckNode;
+  depth: number;
+  open: boolean;
+  onToggle: () => void;
+  picked: boolean;
+  covered: boolean;
+  onPick: () => void;
+}) {
   const [menu, setMenu] = useState(false);
   const [renaming, setRenaming] = useState(false);
 
@@ -180,7 +234,17 @@ function DeckRow({ deck, depth, open, onToggle }: { deck: DeckNode; depth: numbe
   const n = (v: number, cls: string) => <span className={v ? cls : "zero"}>{v}</span>;
 
   return (
-    <tr>
+    <tr className={picked || covered ? "is-picked" : ""}>
+      <td className="col-pick">
+        <input
+          type="checkbox"
+          checked={picked || covered}
+          disabled={covered}
+          onChange={onPick}
+          aria-label={`Study ${deck.fullName} with other decks`}
+          title={covered ? "Included with its parent deck" : "Pick to study with other decks"}
+        />
+      </td>
       <td className="deck-name">
         <div className="deck-name-inner" style={{ paddingLeft: depth * 20 }}>
           {deck.children.length ? (

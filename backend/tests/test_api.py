@@ -272,6 +272,36 @@ def test_study_all_decks(client, deck_ids):
     assert after["counts"]["new"] == first["counts"]["new"] - 1
 
 
+def test_study_chosen_decks(client, deck_ids):
+    prob, algo = deck_ids["Maths::Probability"], deck_ids["Computer Science::Algorithms"]
+    first = client.get(f"/api/review/{prob},{algo}/next").json()
+    assert first["done"] is False
+    assert first["deckName"] == "Probability, Algorithms"
+    decks = {first["card"]["deck"], *(u["deck"] for u in first["upcoming"])}
+    assert decks == {"Maths::Probability", "Computer Science::Algorithms"}
+
+    one = lambda did: client.get(f"/api/review/{did}/next").json()["counts"]  # noqa: E731
+    a, b = one(prob), one(algo)
+    assert first["counts"] == {k: a[k] + b[k] for k in a}
+
+    r = client.post(f"/api/review/{prob},{algo}/answer", json={"cardId": first["card"]["id"], "rating": 3})
+    assert r.status_code == 200
+
+
+def test_study_chosen_decks_inside_each_other(client, deck_ids):
+    # A deck chosen along with its parent is already part of it.
+    maths, prob = deck_ids["Maths"], deck_ids["Maths::Probability"]
+    both = client.get(f"/api/review/{maths},{prob}/next").json()
+    alone = client.get(f"/api/review/{maths}/next").json()
+    assert both["counts"] == alone["counts"]
+    assert both["deckName"] == "Maths"
+
+
+def test_study_unknown_decks(client, deck_ids):
+    assert client.get("/api/review/1,999999/next").status_code == 404
+    assert client.get("/api/review/abc/next").status_code == 404
+
+
 def test_jump_ahead_to_an_upcoming_card(client, deck_ids):
     did = deck_ids["Maths::Probability"]
     first = client.get(f"/api/review/{did}/next").json()

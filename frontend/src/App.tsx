@@ -79,7 +79,7 @@ export function App() {
   let params: Record<string, string> | null;
   if (path === "/") page = <Decks />;
   else if ((params = match("/deck/:deckId", path))) page = <DeckOverview key={params.deckId} deckId={Number(params.deckId)} />;
-  else if ((params = match("/study/:deckId", path))) page = <Review key={params.deckId} deckId={params.deckId === "all" ? 0 : Number(params.deckId)} />;
+  else if ((params = match("/study/:deckId", path))) page = <Review key={params.deckId} decks={params.deckId === "all" ? "0" : params.deckId} />;
   else if (path === "/browse") page = <Browse />;
   else if (path === "/add" || path === "/write") page = <Add />;
   else if (path === "/stats") page = <Stats />;

@@ -21,9 +21,13 @@ const RATINGS = [
 
 const FLAGS = ["", "Red", "Orange", "Green", "Blue", "Pink", "Turquoise", "Purple"];
 
-/** Studies one deck with its subdecks, or every deck when deckId is 0. */
-export function Review({ deckId }: { deckId: number }) {
-  const home = deckId === 0 ? "/" : `/deck/${deckId}`;
+/**
+ * Studies one deck with its subdecks, several chosen decks ("12,34"), or
+ * every deck ("0").
+ */
+export function Review({ decks }: { decks: string }) {
+  const single = /^\d+$/.test(decks) && decks !== "0" ? Number(decks) : null;
+  const home = single ? `/deck/${single}` : "/";
   const [data, setData] = useState<NextCard | null>(null);
   const [revealed, setRevealed] = useState(false);
   const [panel, setPanel] = useState<null | "edit" | "info">(null);
@@ -39,7 +43,7 @@ export function Review({ deckId }: { deckId: number }) {
 
   const load = useCallback(async (cardId?: number) => {
     try {
-      const next = await api.next(deckId, cardId);
+      const next = await api.next(decks, cardId);
       setData(next);
       setRevealed(false);
       shownAt.current = Date.now();
@@ -47,7 +51,7 @@ export function Review({ deckId }: { deckId: number }) {
       toast.error((err as Error).message);
       navigate("/");
     }
-  }, [deckId]);
+  }, [decks]);
 
   useEffect(() => {
     void load();
@@ -76,7 +80,7 @@ export function Review({ deckId }: { deckId: number }) {
     if (!card || !revealed || busy.current) return;
     busy.current = true;
     try {
-      await api.answer(deckId, card.id, rating, Date.now() - shownAt.current);
+      await api.answer(decks, card.id, rating, Date.now() - shownAt.current);
       await load();
     } catch (err) {
       toast.error((err as Error).message);
@@ -160,7 +164,7 @@ export function Review({ deckId }: { deckId: number }) {
           </div>
         </div>
       ) : data.done ? (
-        <Finished data={data} deckId={deckId} />
+        <Finished data={data} decks={decks} single={single} />
       ) : null}
 
       {card && (
@@ -344,12 +348,13 @@ function InfoDrawer({ cardId, onClose }: { cardId: number; onClose: () => void }
   );
 }
 
-function Finished({ data, deckId }: { data: NextCard & { done: true }; deckId: number }) {
+function Finished({ data, decks, single }: { data: NextCard & { done: true }; decks: string; single: number | null }) {
   const c = data.congrats;
+  const finished = single ? "You have finished this deck for now." : decks === "0" ? "You have studied everything for now." : "You have finished these decks for now.";
   return (
     <div className="panel finished">
       <h1>Congratulations</h1>
-      <p>{deckId === 0 ? "You have studied everything for now." : "You have finished this deck for now."}</p>
+      <p>{finished}</p>
       {c.studiedToday.cards > 0 && (
         <p className="muted">
           Studied {plural(c.studiedToday.cards, "card")} in {duration(c.studiedToday.seconds)} today.
@@ -362,10 +367,10 @@ function Finished({ data, deckId }: { data: NextCard & { done: true }; deckId: n
       )}
       {c.haveBuried && <p className="muted">Some cards are buried until tomorrow.</p>}
       <div className="finished-actions">
-        <a className="btn" href={deckId === 0 ? "/browse" : `/browse?deck=${encodeURIComponent(data.deckName)}`}>
+        <a className="btn" href={single ? `/browse?deck=${encodeURIComponent(data.deckName)}` : "/browse"}>
           Browse
         </a>
-        <a className="btn" href={deckId === 0 ? "/add" : `/add?deck=${deckId}`}>
+        <a className="btn" href={single ? `/add?deck=${single}` : "/add"}>
           Add cards
         </a>
         <a className="btn btn-primary" href="/">

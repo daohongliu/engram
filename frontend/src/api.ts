@@ -273,11 +273,14 @@ export const api = {
   deckOptions: (id: number) => get<DeckOptions>(`/api/decks/${id}/options`),
   setDeckOptions: (id: number, o: Partial<DeckOptions>) => put<DeckOptions>(`/api/decks/${id}/options`, o),
 
-  /** deckId 0 studies every deck. With cardId, that card is shown now if it is waiting. */
-  next: (deckId: number, cardId?: number) =>
-    get<NextCard>(`/api/review/${deckId}/next${cardId ? `?cardId=${cardId}` : ""}`),
-  answer: (deckId: number, cardId: number, rating: number, ms: number) =>
-    post(`/api/review/${deckId}/answer`, { cardId, rating, ms }),
+  /**
+   * `decks` is one deck id, several joined by commas, or "0" for every deck.
+   * With cardId, that card is shown now if it is waiting.
+   */
+  next: (decks: string, cardId?: number) =>
+    get<NextCard>(`/api/review/${decks}/next${cardId ? `?cardId=${cardId}` : ""}`),
+  answer: (decks: string, cardId: number, rating: number, ms: number) =>
+    post(`/api/review/${decks}/answer`, { cardId, rating, ms }),
 
   search: (p: SearchParams) => {
     const qs = new URLSearchParams();
