@@ -1123,6 +1123,14 @@ tr:hover .row-menu-btn,
   text-align: center;
 }
 
+/* On the study page the card would otherwise fill its whole row. */
+.review > .finished {
+  align-self: start;
+  width: calc(100% - 32px);
+  max-height: calc(100% - 12vh);
+  overflow-y: auto;
+}
+
 .finished h1 {
   margin-bottom: 8px;
   font-size: 30px;
