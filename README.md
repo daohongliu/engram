@@ -1,29 +1,27 @@
 # Engram
 
-Engram is a flashcard app that uses the open-source `anki` Python package
-underneath, so scheduling (including FSRS), note types and cloze deletions work
-the same way they do in Anki. Fields are written in Markdown with LaTeX maths,
-and images can be pasted straight in.
+Engram is a flashcard app. It uses the `anki` Python package for scheduling
+and storage, and keeps cards in an ordinary Anki collection file. Card fields
+are Markdown, and maths is written in LaTeX.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/study-dark.png">
   <img alt="Studying a card, with the cards still waiting listed on the right" src="docs/study-light.png">
 </picture>
 
-## What it does
+## Features
 
-- Decks and subdecks with their own daily limits. You can study one deck,
-  a few you pick, or all of them at once.
-- While studying, the cards still to come are listed at the side, and you can
-  jump to any of them. The keys are Anki's: space to show the answer, then 1–4.
-- Fields are Markdown, with maths between `$` signs. A preview under each field
-  shows how it will look. `⌘⇧C` makes a cloze deletion.
-- Paste or drop images into a field, and drag a corner to resize them.
-- Browsing shows each card as rendered text, question over answer. Search is
-  plain words, with filters for decks, tags and card states in the sidebar.
-  Changes to several cards at once can be undone with `⌘Z`.
-- Statistics, LaTeX macros shared across cards, light and dark themes, a `⌘K`
-  command menu, and `?` to list the keyboard shortcuts.
+- Decks and subdecks, each with its own daily limits
+- Studying one deck, several decks, or all decks together
+- A list of upcoming cards next to the current card
+- A rendered preview under each field while editing
+- Cloze deletions, including inside maths
+- Pasting and resizing images
+- Searching, editing and bulk-editing cards, with undo
+- Statistics
+- LaTeX macros shared by all cards
+- Light and dark themes
+- Keyboard shortcuts, mostly the same as Anki's
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/browse-dark.png">
@@ -54,8 +52,8 @@ science decks). Delete the decks whenever you like, or start empty with
 `ENGRAM_NO_DEMO=1`.
 
 Everything is stored in `data/`: `collection.anki2` holds notes, cards and
-review history, and `collection.media/` holds images. Back up that folder to
-back up everything. `--collection path/to/collection.anki2` uses a different
+review history, and `collection.media/` holds images. To back up, copy that
+folder. `--collection path/to/collection.anki2` uses a different
 location.
 
 ### Installing as an app
