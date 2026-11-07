@@ -1,62 +1,34 @@
 # Engram
 
-A flashcard app for the browser, built for cards with maths and images. It uses
-the open-source `anki` Python package as its engine, so scheduling (FSRS), card
-templates and clozes work as they do in Anki. The interface is new.
+Engram is a flashcard app that uses the open-source `anki` Python package
+underneath, so scheduling (including FSRS), note types and cloze deletions work
+the same way they do in Anki. Fields are written in Markdown with LaTeX maths,
+and images can be pasted straight in.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/study-dark.png">
   <img alt="Studying a card, with the cards still waiting listed on the right" src="docs/study-light.png">
 </picture>
 
-## Features
+## What it does
 
-**Decks.** The deck list works like Anki's: new, learning and due counts per
-deck, collapsible subdecks, and a menu for studying, adding, browsing,
-renaming and deleting. Clicking a deck opens its overview, with a Study button
-and the deck's daily limits and desired retention.
-
-**Reviewing.** Study one deck, tick several decks on the Decks page and study
-them together, or press **Study all** to get cards from every deck at once.
-Cards from different decks are mixed together, each deck keeping its own daily
-limits. The answer buttons and their next intervals sit in a bar at the
-bottom. On the right, **Up next** lists the cards still waiting; click one
-to study it now, and the card you skipped stays first in line. Edit, card
-info, bury, suspend and flag are one click or one key away. The keys are
-Anki's: space to show the answer, then 1–4.
-
-**Adding cards.** Fields are Markdown, and LaTeX goes between `$` signs. You
-edit each field as plain text, and a preview below it shows the whole field
-rendered, maths included, as you type. If you prefer, Settings can switch to
-rendering in place instead, where the source collapses into rendered maths
-when the cursor leaves it. `⌘⇧C` makes a cloze deletion. A preview of the
-resulting cards sits beside the form.
-
-**Images.** Paste a screenshot into a field, drop image files in, or use
-"Add image". Drag an image's corner in the editor to resize it; the width is
-saved in the Markdown as `![caption|300](file.png)`. Click an image during
-review to see it full size.
-
-**Browsing.** Cards are listed as readable entries, question over answer,
-with maths and images rendered and a menu to sort them. Switch between
-**Cards** and **Notes**: in Notes, a note that makes several cards (a cloze
-with three gaps, say) appears once with every gap highlighted, and actions on
-it apply to all its cards. Clicking an entry opens an editor pane that saves
-as you type. Search is plain text: type some words and you get the cards containing
-all of them, ignoring case and accents, matched against card text, tags and
-deck names. Filters for decks, tags and card states (due, new, suspended,
-flagged, has image, and so on) are in the sidebar. Select several cards with
-shift- or ⌘-click to move, tag, flag, suspend or delete them together; every
-change can be undone with `⌘Z`.
+- Decks and subdecks with their own daily limits. You can study one deck,
+  a few you pick, or all of them at once.
+- While studying, the cards still to come are listed at the side, and you can
+  jump to any of them. The keys are Anki's: space to show the answer, then 1–4.
+- Fields are Markdown, with maths between `$` signs. A preview under each field
+  shows how it will look. `⌘⇧C` makes a cloze deletion.
+- Paste or drop images into a field, and drag a corner to resize them.
+- Browsing shows each card as rendered text, question over answer. Search is
+  plain words, with filters for decks, tags and card states in the sidebar.
+  Changes to several cards at once can be undone with `⌘Z`.
+- Statistics, LaTeX macros shared across cards, light and dark themes, a `⌘K`
+  command menu, and `?` to list the keyboard shortcuts.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/browse-dark.png">
   <img alt="Browsing cards, with one open in the editor" src="docs/browse-light.png">
 </picture>
-
-**Also:** statistics (review heatmap, forecast, card counts, time of day),
-LaTeX macros shared by every card, light and dark themes, a `⌘K` command
-menu, and `?` for keyboard shortcuts.
 
 ## Running it
 
@@ -88,15 +60,14 @@ location.
 
 ### Installing as an app
 
-Engram can be installed as an app with its own window and Dock or taskbar
-icon. With the server running, open http://127.0.0.1:8000 and:
+If you'd like it in its own window, with a Dock or taskbar icon, open
+http://127.0.0.1:8000 while the server is running and:
 
 - **Chrome or Edge:** click the install icon at the right of the address bar,
   or choose *Install Engram* from the menu.
 - **Safari (macOS 14+):** choose *File › Add to Dock*.
 
-The app talks to the server on your machine, so start the server first
-(`.venv/bin/python -m engram`) whenever you want to use it.
+The installed app still needs the server running in the background.
 
 ### Developing
 
