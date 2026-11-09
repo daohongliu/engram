@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from ..cardinfo import clean_card_html, split_answer
 from ..fields import decode_field, encode_field
-from ..store import collection, drop_unused_tags
+from ..store import collection, drop_unused_tags, fold_into_step
 
 router = APIRouter(prefix="/api", tags=["notes"])
 
@@ -139,9 +139,38 @@ def update_note(note_id: int, body: NoteIn) -> dict[str, Any]:
             col.update_note(note)
             if list(note.tags) != before[1]:
                 drop_unused_tags(col)
+        removed = remove_orphaned_cloze_cards(col, note)
         if body.deckId is not None:
             col.set_deck(list(note.card_ids()), body.deckId)
-        return {"ok": True, "noteId": note.id, "changed": (list(note.fields), list(note.tags)) != before}
+        return {
+            "ok": True,
+            "noteId": note.id,
+            "changed": (list(note.fields), list(note.tags)) != before,
+            "removedCardIds": removed,
+        }
+
+
+def remove_orphaned_cloze_cards(col: Any, note: Note) -> list[int]:
+    """Delete the cards of a cloze note whose deletion no longer exists.
+
+    Anki keeps a card when its cloze is edited out of the note: the card
+    stays, keeps its schedule, and shows "No cloze N found on card" when it
+    comes up. Here such cards are deleted, along with their review history.
+    A note with no deletions left at all keeps its cards, since every note
+    needs at least one. The removal joins the edit's undo step, so a single
+    undo brings back both the text and the cards.
+    """
+    if note.note_type()["type"] != 1:
+        return []
+    numbers = set(note.cloze_numbers_in_fields())
+    if not numbers:
+        return []
+    stale = [cid for cid in note.card_ids() if col.get_card(cid).ord + 1 not in numbers]
+    if stale:
+        step = col.undo_status().last_step
+        col.remove_cards_and_orphaned_notes(stale)
+        fold_into_step(col, step)
+    return stale
 
 
 @router.delete("/notes/{note_id}")

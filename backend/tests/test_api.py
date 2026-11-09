@@ -405,3 +405,41 @@ def test_studying_another_deck_after_undo(client, deck_ids):
     assert client.post("/api/undo").json()["undid"] == "Suspend"
     assert client.get(f"/api/review/{second}/next").status_code == 200
     assert client.get("/api/undo").json()["undo"] != "Select Deck"
+
+
+def test_removing_a_cloze_deletes_its_card(client, deck_ids):
+    types = {t["name"]: t for t in client.get("/api/notetypes").json()}
+    did = next(iter(deck_ids.values()))
+    created = client.post(
+        "/api/notes",
+        json={"notetypeId": types["Cloze"]["id"], "deckId": did,
+              "fields": ["{{c1::Paris}} is in {{c2::France}} in {{c3::Europe}}", ""]},
+    ).json()
+    nid = created["noteId"]
+    assert len(created["cardIds"]) == 3
+
+    # Drop c2: its card goes, the other two stay.
+    r = client.put(f"/api/notes/{nid}", json={"fields": ["{{c1::Paris}} is in France in {{c3::Europe}}", ""]}).json()
+    assert len(r["removedCardIds"]) == 1
+    after = client.get(f"/api/notes/{nid}").json()["cardIds"]
+    assert len(after) == 2 and set(after) == set(created["cardIds"]) - set(r["removedCardIds"])
+    for cid in after:
+        assert "No cloze" not in client.get(f"/api/cards/{cid}").json()["question"]
+
+    # Re-adding c2 makes a fresh, new card rather than reviving the old schedule.
+    r = client.put(f"/api/notes/{nid}", json={"fields": ["{{c1::Paris}} is in {{c2::France}} in {{c3::Europe}}", ""]}).json()
+    assert r["removedCardIds"] == []
+    assert len(client.get(f"/api/notes/{nid}").json()["cardIds"]) == 3
+
+    # One undo restores the text and the deleted card together.
+    client.put(f"/api/notes/{nid}", json={"fields": ["{{c1::Paris}} is in {{c2::France}} in Europe", ""]})
+    assert len(client.get(f"/api/notes/{nid}").json()["cardIds"]) == 2
+    client.post("/api/undo")
+    note = client.get(f"/api/notes/{nid}").json()
+    assert len(note["cardIds"]) == 3
+    assert "{{c3::Europe}}" in note["fields"][0]["source"]
+
+    # With no deletions left at all, the note keeps its cards.
+    r = client.put(f"/api/notes/{nid}", json={"fields": ["Paris is in France", ""]}).json()
+    assert r["removedCardIds"] == []
+    assert len(client.get(f"/api/notes/{nid}").json()["cardIds"]) == 3
