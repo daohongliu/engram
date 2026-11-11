@@ -1587,7 +1587,7 @@ tr:hover .row-menu-btn,
 .result-q {
   font-size: 17px;
   line-height: 1.45;
-  max-height: 6.4em;
+  max-height: 7.5em;
   overflow: hidden;
 }
 
@@ -1606,9 +1606,10 @@ tr:hover .row-menu-btn,
   margin: 0 0 0.2em;
 }
 
-.result-body .math-display,
-.result-body .math-block {
-  margin: 0.2em 0;
+.result-body .card-html .math-display,
+.result-body .card-html .math-block,
+.result-body .card-html .katex-display {
+  margin: 0.15em 0;
 }
 
 .result-a pre {

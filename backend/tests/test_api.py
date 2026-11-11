@@ -370,6 +370,17 @@ def test_notes_mode_cloze_inside_maths(client):
     assert any("\\htmlClass{cloze}{" in m for m in maths)
 
 
+def test_cloze_around_maths_is_shown():
+    from engram.routes.browse import _field_html
+
+    # A deletion wrapping a whole formula, with "}}" inside the TeX.
+    html = _field_html(r"Then {{c1::\[\frac{1}{x^{2}}\]}} with {{c2::text \(y\)}}.")
+    assert "{{c" not in html and "}}." not in html
+    assert r"\[\htmlClass{cloze}{\frac{1}{x^{2}}}\]" in html
+    assert '<span class="cloze">text </span>' in html
+    assert r"\(\htmlClass{cloze}{y}\)" in html
+
+
 def test_retagging_right_after_an_edit(client, deck_ids):
     # Anki folds consecutive edits of one note into a single undo step, so the
     # step number read after the second edit is not on the undo stack. Folding

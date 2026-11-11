@@ -84,6 +84,12 @@ def _first_card_per_note(col, card_ids: list[int]) -> list[int]:
 # {{c1::text}} or {{c1::text::hint}}
 _CLOZE_RE = re.compile(r"\{\{c\d+::(.*?)(?:::[^}]*?)?\}\}", re.S)
 _MATH_RE = re.compile(r"(\\\(.*?\\\)|\\\[.*?\\\])", re.S)
+_BR_RE = re.compile(r"<br\s*/?>", re.I)
+_BR_BEFORE_DISPLAY = re.compile(r"(?:\s*<br\s*/?>)+\s*\\\[", re.I)
+_BR_AFTER_DISPLAY = re.compile(r"\\\](?:\s*<br\s*/?>)+\s*", re.I)
+# The same, but maths inside counts as one piece, so a "}}" in the TeX
+# (as in \frac{1}{x^{2}}) does not end the deletion early.
+_CLOZE_MATH_RE = re.compile(r"\{\{c\d+::((?:\\\(.*?\\\)|\\\[.*?\\\]|.)*?)(?:::[^}]*?)?\}\}", re.S)
 
 
 def _field_html(raw: str) -> str:
@@ -92,13 +98,33 @@ def _field_html(raw: str) -> str:
     HTML inside maths would break the formula, so there a deletion is
     coloured with ``\\htmlClass{cloze}``, which the frontend's KaTeX allows.
     """
-    parts = _MATH_RE.split(clean_card_html(strip_payload(raw)))
+    text = clean_card_html(strip_payload(raw))
+    # A deletion that contains maths, such as {{c1::\[...\]}}, is handled
+    # first, since splitting at the maths would separate its two ends.
+    text = _CLOZE_MATH_RE.sub(lambda m: _cloze_around_math(m) if _MATH_RE.search(m.group(1)) else m.group(0), text)
+    # Display maths sits on its own line anyway, so line breaks right next
+    # to it would only leave blank lines.
+    text = _BR_BEFORE_DISPLAY.sub(r"\\[", _BR_AFTER_DISPLAY.sub(r"\\]", text))
+    parts = _MATH_RE.split(text)
     return "".join(
         _CLOZE_RE.sub(lambda m: _cloze_tex(m.group(1)), part)
         if i % 2
         else _CLOZE_RE.sub(r'<span class="cloze">\1</span>', part)
         for i, part in enumerate(parts)
     )
+
+
+def _cloze_around_math(m: re.Match) -> str:
+    """A deletion containing maths: text in a span, maths coloured inside."""
+    out = []
+    for i, part in enumerate(_MATH_RE.split(m.group(1))):
+        if i % 2:
+            out.append(part[:2] + _cloze_tex(part[2:-2]) + part[-2:])
+        elif _BR_RE.sub("", part).strip():
+            out.append(f'<span class="cloze">{part}</span>')
+        else:
+            out.append(part)
+    return "".join(out)
 
 
 def _cloze_tex(tex: str) -> str:
