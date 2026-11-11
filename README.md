@@ -67,6 +67,30 @@ http://127.0.0.1:8000 while the server is running and:
 
 The installed app still needs the server running in the background.
 
+### Connecting Claude (MCP)
+
+Engram includes an optional MCP server, so Claude or another agent can search
+your cards, add new ones and change existing ones. It needs a few extra
+packages and a password:
+
+```sh
+.venv/bin/pip install -e "backend[mcp]"
+.venv/bin/python -m engram hash-password      # prints a hash for the password you type
+export ENGRAM_MCP_PASSWORD_HASH='...'
+.venv/bin/python -m engram --mcp-port 8001
+```
+
+The MCP server is then at http://127.0.0.1:8001/mcp. It runs in the same
+process as Engram but on its own port, which only serves the MCP endpoints and
+their sign-in page. When Claude connects, it opens that page and you enter the
+password. Cards added by the agent go to a deck called "AI inbox" and are
+tagged `ai`, unless you ask for another deck.
+
+To use it from claude.ai, the MCP port has to be reachable over HTTPS, for
+example behind a reverse proxy. Set `ENGRAM_MCP_PUBLIC_URL` to that address.
+Other settings: `ENGRAM_MCP_INBOX` (the deck name) and `ENGRAM_MCP_DB` (where
+sign-in tokens are kept, `data/mcp.db` by default).
+
 ### Developing
 
 ```sh
@@ -85,6 +109,7 @@ backend/engram/
   store.py        the single open collection, behind a lock
   seed.py         the demo collection
   routes/         decks, review, browse, notes, stats, media and settings
+  mcp_server/     the optional MCP server and its sign-in
 frontend/src/
   editor/         CodeMirror 6 field editor: source view, or live preview in place
   pages/          Decks, DeckOverview, Review, Add, Browse, Stats, Settings
