@@ -1591,6 +1591,11 @@ tr:hover .row-menu-btn,
   overflow: hidden;
 }
 
+.result-q.is-clipped {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 2.4em), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 2.4em), transparent);
+}
+
 .result-a {
   margin-top: 2px;
   font-size: 15px;

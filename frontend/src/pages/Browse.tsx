@@ -422,7 +422,7 @@ const ResultCard = memo(function ResultCard({
         aria-label={row.cardIds ? "Select note" : "Select card"}
       />
       <div className="result-body">
-        <CardHtml html={row.question} className="result-q" />
+        <CardHtml html={row.question} className="result-q" onReady={markClipped} />
         {row.answer && <CardHtml html={row.answer} className="result-a" inline />}
         <div className="result-meta">
           {row.flag > 0 && <span className="cell-flag" style={{ ["--c" as string]: `var(--flag-${row.flag})` }} title={`${FLAG_NAMES[row.flag]} flag`} />}
@@ -577,4 +577,16 @@ function BulkToolbar({
       </span>
     </div>
   );
+}
+
+/** Fade out a question that is taller than the space it gets, so it is not
+ * cut through the middle of a line. */
+function markClipped(el: HTMLDivElement) {
+  const check = () => el.classList.toggle("is-clipped", el.scrollHeight > el.clientHeight + 1);
+  check();
+  // Maths fonts that are still loading change the height too.
+  document.fonts?.ready.then(check);
+  el.querySelectorAll("img").forEach((img) => {
+    if (!img.complete) img.addEventListener("load", check, { once: true });
+  });
 }
