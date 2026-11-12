@@ -319,6 +319,7 @@ export const api = {
   stats: () => get<Stats>("/api/stats"),
   undoStatus: () => get<{ undo: string | null; redo: string | null }>("/api/undo"),
   undo: () => post<{ undid: string }>("/api/undo"),
+  redo: () => post<{ redid: string }>("/api/redo"),
 
   settings: () => get<Settings>("/api/settings"),
   saveSettings: (s: Partial<Settings>) => put<Settings>("/api/settings", s),

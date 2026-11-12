@@ -9,7 +9,7 @@ import { isTyping, MOD, useKeys } from "./lib/keys";
 import { match, navigate, useLinkInterception, useLocation } from "./lib/router";
 import { decks, settings } from "./lib/store";
 import { cycleTheme, useTheme } from "./lib/theme";
-import { undoLast } from "./lib/undo";
+import { redoLast, undoLast } from "./lib/undo";
 import { Add } from "./pages/Add";
 import { Browse } from "./pages/Browse";
 import { DeckOverview } from "./pages/DeckOverview";
@@ -43,6 +43,11 @@ export function App() {
     }
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z" && !e.shiftKey && !isTyping(e)) {
       void undoLast();
+      return true;
+    }
+    const redoKey = (e.metaKey || e.ctrlKey) && ((e.key.toLowerCase() === "z" && e.shiftKey) || (e.ctrlKey && e.key === "y"));
+    if (redoKey && !isTyping(e)) {
+      void redoLast();
       return true;
     }
     if (isTyping(e) || e.metaKey || e.ctrlKey || e.altKey || palette || help) return;

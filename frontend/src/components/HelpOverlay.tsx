@@ -8,6 +8,7 @@ const SECTIONS: { title: string; keys: [string, string][] }[] = [
       ["D A B T", "Decks, Add, Browse, Stats"],
       ["/", "Search cards"],
       [`${MOD} Z`, "Undo"],
+      [`${MOD} Shift Z`, "Redo"],
       ["?", "Keyboard shortcuts"],
     ],
   },

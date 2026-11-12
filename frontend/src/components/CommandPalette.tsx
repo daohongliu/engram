@@ -3,7 +3,7 @@ import { rank } from "../lib/fuzzy";
 import { navigate } from "../lib/router";
 import { decks, flattenDecks } from "../lib/store";
 import { cycleTheme } from "../lib/theme";
-import { undoLast } from "../lib/undo";
+import { redoLast, undoLast } from "../lib/undo";
 
 interface Command {
   id: string;
@@ -30,6 +30,7 @@ export function CommandPalette({ onClose, onHelp }: { onClose: () => void; onHel
       { id: "settings", title: "Settings", section: "Go to", run: () => navigate("/settings") },
       { id: "theme", title: "Toggle theme", section: "Action", run: cycleTheme },
       { id: "undo", title: "Undo", hint: "⌘Z", section: "Action", run: () => void undoLast() },
+      { id: "redo", title: "Redo", hint: "⇧⌘Z", section: "Action", run: () => void redoLast() },
       { id: "help", title: "Keyboard shortcuts", hint: "?", section: "Action", run: onHelp },
     ];
     const totals = deckData?.totals;

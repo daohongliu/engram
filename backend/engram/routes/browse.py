@@ -316,3 +316,13 @@ def undo() -> dict[str, Any]:
             raise HTTPException(409, "Nothing to undo.")
         col.undo()
         return {"undid": st.undo}
+
+
+@router.post("/redo")
+def redo() -> dict[str, Any]:
+    with collection() as col:
+        st = col.undo_status()
+        if not st.redo:
+            raise HTTPException(409, "Nothing to redo.")
+        col.redo()
+        return {"redid": st.redo}

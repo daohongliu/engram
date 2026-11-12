@@ -4,7 +4,7 @@ import { toast } from "./toast";
 
 const listeners = new Set<() => void>();
 
-/** Pages that show collection data subscribe so they can refetch after an undo. */
+/** Pages that show collection data subscribe so they can refetch after an undo or redo. */
 export function onUndo(fn: () => void) {
   listeners.add(fn);
   return () => {
@@ -15,7 +15,18 @@ export function onUndo(fn: () => void) {
 export async function undoLast() {
   try {
     const { undid } = await api.undo();
-    toast.info(`Undid “${undid}”.`);
+    toast.info(`Undid “${undid}”.`, { label: "Redo", run: () => void redoLast() });
+    invalidate();
+    listeners.forEach((l) => l());
+  } catch (err) {
+    toast.error((err as Error).message);
+  }
+}
+
+export async function redoLast() {
+  try {
+    const { redid } = await api.redo();
+    toast.info(`Redid “${redid}”.`, { label: "Undo", run: () => void undoLast() });
     invalidate();
     listeners.forEach((l) => l());
   } catch (err) {

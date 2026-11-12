@@ -484,3 +484,17 @@ def test_change_notetype_keeps_the_schedule(client, deck_ids):
     res = client.post(f"/api/notes/{nid}/notetype", json={"notetypeId": types["Basic"]["id"]}).json()
     assert res["cardIds"] == [cid] and len(res["removedCardIds"]) == 1
     assert client.post(f"/api/notes/{nid}/notetype", json={"notetypeId": 1}).status_code == 404
+
+
+def test_redo_after_undo(client, deck_ids):
+    basic = client.get("/api/notetypes").json()[0]
+    nid = client.post("/api/notes", json={"notetypeId": basic["id"], "deckId": deck_ids["Maths"],
+                                          "fields": ["Redo me", "A"], "tags": []}).json()["noteId"]
+    assert client.post("/api/redo").status_code == 409
+    client.delete(f"/api/notes/{nid}")
+    client.post("/api/undo")
+    assert client.get(f"/api/notes/{nid}").status_code == 200
+    assert client.get("/api/undo").json()["redo"]
+    r = client.post("/api/redo")
+    assert r.status_code == 200 and r.json()["redid"]
+    assert client.get(f"/api/notes/{nid}").status_code == 404
