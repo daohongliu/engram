@@ -120,6 +120,44 @@ export function typesetElement(root: HTMLElement, inline = false) {
   const nodes: Text[] = [];
   while (walker.nextNode()) nodes.push(walker.currentNode as Text);
   for (const node of nodes) typesetTextNode(node, inline);
+  for (const block of root.querySelectorAll<HTMLElement>(".math-block")) fitBlock(block);
+}
+
+/*
+ * Display maths wider than its column is shrunk to fit, down to MIN_SCALE;
+ * anything wider still scrolls sideways. It is fitted again whenever the
+ * column changes width, and once the maths fonts have loaded.
+ */
+const MIN_SCALE = 0.7;
+const fittedWidth = new WeakMap<HTMLElement, number>();
+const resizes =
+  typeof ResizeObserver === "undefined"
+    ? null
+    : new ResizeObserver((entries) => {
+        for (const e of entries) {
+          const block = e.target as HTMLElement;
+          // Shrinking changes the height, which reports a resize too; only
+          // a change of width needs fitting again.
+          if (fittedWidth.get(block) !== block.clientWidth) fit(block);
+        }
+      });
+
+function fitBlock(block: HTMLElement) {
+  resizes?.observe(block);
+  fit(block);
+}
+
+function fit(block: HTMLElement) {
+  block.style.fontSize = "";
+  const width = block.clientWidth;
+  fittedWidth.set(block, width);
+  const natural = block.scrollWidth;
+  if (!width || natural <= width) return;
+  block.style.fontSize = `${Math.max(MIN_SCALE, (width / natural) * 0.99)}em`;
+}
+
+if (typeof document !== "undefined") {
+  document.fonts?.ready.then(() => document.querySelectorAll<HTMLElement>(".math-block").forEach(fit));
 }
 
 function typesetTextNode(node: Text, inline: boolean) {
