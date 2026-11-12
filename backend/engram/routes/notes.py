@@ -150,6 +150,45 @@ def update_note(note_id: int, body: NoteIn) -> dict[str, Any]:
         }
 
 
+class NotetypeChange(BaseModel):
+    notetypeId: int
+
+
+@router.post("/notes/{note_id}/notetype")
+def change_notetype(note_id: int, body: NotetypeChange) -> dict[str, Any]:
+    """Give a note another note type, keeping its cards' schedules.
+
+    Fields are matched by name, then by position, and cards by position: a
+    Basic note's card becomes a cloze note's c1, and the other deletions in
+    the text get new cards. Cards with no place in the new type (a cloze
+    note's c2 when it becomes Basic) are deleted. One undo reverts it all.
+    """
+    with collection() as col:
+        try:
+            note = col.get_note(note_id)
+        except NotFoundError:
+            raise HTTPException(404, "No such note.")
+        old = note.note_type()
+        new = col.models.get(body.notetypeId)
+        if new is None:
+            raise HTTPException(404, "No such note type.")
+        before = set(note.card_ids())
+        if new["id"] != old["id"]:
+            req = col.models.change_notetype_info(old_notetype_id=old["id"], new_notetype_id=new["id"]).input
+            req.note_ids.extend([note_id])
+            col.models.change_notetype_of_notes(req)
+            note = col.get_note(note_id)
+            remove_orphaned_cloze_cards(col, note)
+        after = list(note.card_ids())
+        return {
+            "noteId": note_id,
+            "notetype": {"id": new["id"], "name": new["name"], "isCloze": new["type"] == 1},
+            "cardIds": after,
+            "removedCardIds": sorted(before - set(after)),
+            "addedCardIds": sorted(set(after) - before),
+        }
+
+
 def remove_orphaned_cloze_cards(col: Any, note: Note) -> list[int]:
     """Delete the cards of a cloze note whose deletion no longer exists.
 

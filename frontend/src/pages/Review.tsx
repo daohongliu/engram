@@ -5,6 +5,7 @@ import { tip } from "../components/Tooltips";
 import { CardInfo } from "../components/CardInfo";
 import { Close, Edit, Info, More } from "../components/Icons";
 import { NoteFields } from "../components/NoteFields";
+import { changeNotetype, NotetypeSelect } from "../components/NotetypeSelect";
 import { duration, plural } from "../lib/format";
 import { isTyping, MOD, useKeys } from "../lib/keys";
 import { navigate } from "../lib/router";
@@ -384,27 +385,56 @@ function Finished({ data, decks, single }: { data: NextCard & { done: true }; de
 function EditDrawer({ noteId, onClose }: { noteId: number; onClose: (changed: boolean) => void }) {
   const [fields, setFields] = useState<{ name: string; value: string }[] | null>(null);
   const [tags, setTags] = useState<string[]>([]);
+  const [notetypeId, setNotetypeId] = useState<number | null>(null);
   const original = useRef("");
+  // Changing the note type counts as a change even if the text is untouched.
+  const retyped = useRef(false);
 
-  useEffect(() => {
+  const load = () =>
     api.note(noteId).then(
       (n) => {
         const fs = n.fields.map((f) => ({ name: f.name, value: f.source }));
         setFields(fs);
         setTags(n.tags);
+        setNotetypeId(n.notetype.id);
         original.current = JSON.stringify([fs.map((f) => f.value), n.tags]);
       },
       (err) => toast.error(err.message),
     );
+
+  useEffect(() => {
+    void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [noteId]);
+
+  /** Save the text if it changed; true when it did. */
+  const write = async () => {
+    if (!fields || JSON.stringify([fields.map((f) => f.value), tags]) === original.current) return false;
+    await api.updateNote(noteId, { fields: fields.map((f) => f.value), tags });
+    original.current = JSON.stringify([fields.map((f) => f.value), tags]);
+    return true;
+  };
 
   const save = async () => {
     if (!fields) return;
-    if (JSON.stringify([fields.map((f) => f.value), tags]) === original.current) return onClose(false);
     try {
-      await api.updateNote(noteId, { fields: fields.map((f) => f.value), tags });
-      invalidate();
-      onClose(true);
+      const wrote = await write();
+      if (wrote || retyped.current) invalidate();
+      onClose(wrote || retyped.current);
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  };
+
+  const setNotetype = async (id: number) => {
+    if (id === notetypeId) return;
+    try {
+      // The new type starts from the text as it is now.
+      await write();
+      const res = await changeNotetype(noteId, id);
+      retyped.current = true;
+      toast.success(res.message);
+      await load();
     } catch (err) {
       toast.error((err as Error).message);
     }
@@ -432,8 +462,15 @@ function EditDrawer({ noteId, onClose }: { noteId: number; onClose: (changed: bo
           </div>
         </div>
         <div className="editor-body">
+          {notetypeId !== null && (
+            <label className="field" style={{ alignSelf: "flex-start" }}>
+              <span>Note type</span>
+              <NotetypeSelect value={notetypeId} onChange={(id) => void setNotetype(id)} />
+            </label>
+          )}
           {fields ? (
             <NoteFields
+              key={notetypeId ?? 0}
               fields={fields}
               onField={(i, v) => setFields(fields.map((f, j) => (j === i ? { ...f, value: v } : f)))}
               tags={tags}

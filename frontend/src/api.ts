@@ -302,6 +302,14 @@ export const api = {
   updateNote: (id: number, body: { fields: string[]; tags: string[]; deckId?: number }) =>
     put<{ ok: boolean; changed: boolean }>(`/api/notes/${id}`, body),
   deleteNote: (id: number) => del(`/api/notes/${id}`),
+  changeNotetype: (id: number, notetypeId: number) =>
+    post<{
+      noteId: number;
+      notetype: { id: number; name: string; isCloze: boolean };
+      cardIds: number[];
+      removedCardIds: number[];
+      addedCardIds: number[];
+    }>(`/api/notes/${id}/notetype`, { notetypeId }),
   preview: (notetypeId: number, fields: string[]) =>
     post<{ cards: { label: string; question: string; answer: string }[] }>("/api/notes/preview", {
       notetypeId,

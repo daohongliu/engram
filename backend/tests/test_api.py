@@ -454,3 +454,33 @@ def test_removing_a_cloze_deletes_its_card(client, deck_ids):
     r = client.put(f"/api/notes/{nid}", json={"fields": ["Paris is in France", ""]}).json()
     assert r["removedCardIds"] == []
     assert len(client.get(f"/api/notes/{nid}").json()["cardIds"]) == 3
+
+
+def test_change_notetype_keeps_the_schedule(client, deck_ids):
+    types = {t["name"]: t for t in client.get("/api/notetypes").json()}
+    did = deck_ids["Maths::Analysis"]
+    r = client.post("/api/notes", json={"notetypeId": types["Basic"]["id"], "deckId": did,
+                                        "fields": ["Q", "A"], "tags": []}).json()
+    nid, (cid,) = r["noteId"], r["cardIds"]
+    client.post("/api/cards/bulk", json={"ids": [cid], "action": "setDue", "days": "5!"})
+    due = client.get(f"/api/cards/{cid}").json()["due"]
+
+    # Write the deletions, then make it a cloze note: the card becomes c1, c2 is new.
+    client.put(f"/api/notes/{nid}", json={"fields": ["$x = {{c1::1}}$ and {{c2::two}}", "A"], "tags": []})
+    res = client.post(f"/api/notes/{nid}/notetype", json={"notetypeId": types["Cloze"]["id"]}).json()
+    assert res["notetype"]["isCloze"] and res["removedCardIds"] == [] and len(res["addedCardIds"]) == 1
+    assert cid in res["cardIds"]
+    assert client.get(f"/api/cards/{cid}").json()["due"] == due
+    note = client.get(f"/api/notes/{nid}").json()
+    assert [f["name"] for f in note["fields"]] == ["Text", "Back Extra"]
+    assert note["fields"][0]["source"].startswith("$x = {{c1::1}}$")
+
+    # Undo puts the Basic note back.
+    client.post("/api/undo")
+    assert client.get(f"/api/notes/{nid}").json()["notetype"]["name"] == "Basic"
+
+    # Back to Basic from cloze: only c1's card can stay.
+    client.post(f"/api/notes/{nid}/notetype", json={"notetypeId": types["Cloze"]["id"]})
+    res = client.post(f"/api/notes/{nid}/notetype", json={"notetypeId": types["Basic"]["id"]}).json()
+    assert res["cardIds"] == [cid] and len(res["removedCardIds"]) == 1
+    assert client.post(f"/api/notes/{nid}/notetype", json={"notetypeId": 1}).status_code == 404

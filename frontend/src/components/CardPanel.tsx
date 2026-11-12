@@ -2,11 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import { api, BulkAction, CardDetail } from "../api";
 import { invalidate } from "../lib/store";
 import { toast } from "../lib/toast";
-import { doneWithUndo } from "../lib/undo";
+import { doneWithUndo, onUndo } from "../lib/undo";
 import { CardInfo } from "./CardInfo";
 import { DeckSelect } from "./DeckSelect";
 import { Close, Maximize, Restore } from "./Icons";
 import { tip } from "./Tooltips";
+import { changeNotetype, NotetypeSelect } from "./NotetypeSelect";
 import { FieldValue, NoteFields } from "./NoteFields";
 
 type SaveState = "idle" | "dirty" | "saving" | "saved" | "error";
@@ -22,7 +23,7 @@ export function CardPanel({
   onToggleMaximize,
 }: {
   cardId: number;
-  onChanged: (cardId: number, removed?: boolean) => void;
+  onChanged: (cardId: number, removed?: boolean, listChanged?: boolean) => void;
   onClose: () => void;
   maximized?: boolean;
   onToggleMaximize?: () => void;
@@ -36,7 +37,7 @@ export function CardPanel({
   const latest = useRef({ fields, tags, card });
   latest.current = { fields, tags, card };
 
-  const load = (id: number) =>
+  const load = (id: number, quiet = false) =>
     api.card(id).then(
       (c) => {
         setCard(c);
@@ -45,8 +46,15 @@ export function CardPanel({
         noteId.current = c.noteId;
         setSave("idle");
       },
-      (err) => toast.error(err.message),
+      (err) => {
+        if (quiet) onChanged(id, true);
+        else toast.error(err.message);
+      },
     );
+
+  // An undo may have changed this note (its type, say), so show it afresh.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => onUndo(() => void load(cardId, true)), [cardId]);
 
   const flush = async () => {
     const { fields: fs, tags: ts, card: c } = latest.current;
@@ -84,6 +92,25 @@ export function CardPanel({
     }, 600);
   };
 
+  const setNotetype = async (notetypeId: number) => {
+    if (!card || notetypeId === card.notetype.id) return;
+    // Save what is typed first, so the new type gets the latest text.
+    if (pending.current) {
+      window.clearTimeout(pending.current);
+      pending.current = null;
+      await flush();
+    }
+    try {
+      const res = await changeNotetype(card.noteId, notetypeId);
+      doneWithUndo(res.message);
+      const removed = res.removedCardIds.includes(card.id);
+      onChanged(card.id, removed, true);
+      if (!removed) void load(card.id);
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  };
+
   const run = async (action: BulkAction, extra: Record<string, unknown> = {}, message?: string) => {
     if (!card) return;
     await api.bulk([card.id], action, extra);
@@ -101,7 +128,6 @@ export function CardPanel({
     <aside className="editor-pane" aria-label="Edit card">
       <div className="editor-head">
         <div className="meta">
-          <span className="badge">{card.notetype.name}</span>
           {card.template !== "Card 1" && card.template !== card.notetype.name && <span>{card.template}</span>}
           <span className={`save-state ${save}`}>{saveText}</span>
         </div>
@@ -129,13 +155,17 @@ export function CardPanel({
             <DeckSelect value={card.deckId} onChange={(id) => void run("move", { deckId: id }, "Card moved.")} />
           </label>
           <label className="field">
+            <span>Note type</span>
+            <NotetypeSelect value={card.notetype.id} onChange={(id) => void setNotetype(id)} />
+          </label>
+          <label className="field">
             <span>Flag</span>
             <FlagPicker value={card.flag} onChange={(f) => void run("flag", { flag: f })} />
           </label>
         </div>
 
         <NoteFields
-          key={card.noteId}
+          key={`${card.noteId}-${card.notetype.id}`}
           idPrefix={`n${card.noteId}`}
           fields={fields}
           onField={(i, v) => {

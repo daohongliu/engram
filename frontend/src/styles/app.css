@@ -1776,9 +1776,14 @@ tr:hover .row-menu-btn,
 
 .editor-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+.editor-row > .field:first-child {
+  min-width: 160px;
 }
 
 .facts {

@@ -121,10 +121,15 @@ export function Browse() {
   }, [rows.length, total, loading, fetchRows]);
 
   const refreshRow = useCallback(
-    async (cardId: number, removed?: boolean) => {
+    async (cardId: number, removed?: boolean, listChanged?: boolean) => {
       if (removed) {
         setCurrent(null);
         void refreshAll();
+        return;
+      }
+      if (listChanged) {
+        void refreshAll();
+        invalidate();
         return;
       }
       const r = await api.search({ cid: cardId, limit: 1, notes });
