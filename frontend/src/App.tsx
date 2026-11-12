@@ -41,12 +41,16 @@ export function App() {
       setPalette((p) => !p);
       return true;
     }
-    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z" && !e.shiftKey && !isTyping(e)) {
+    // In a text field these keys undo typing first. A card field's editor
+    // leaves the key alone once it has nothing left to undo or redo (right
+    // after adding a card, say), and then they act on the collection.
+    const collectionKeys = !isTyping(e) || (!e.defaultPrevented && !!(e.target as HTMLElement).closest?.(".cm-editor"));
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z" && !e.shiftKey && collectionKeys) {
       void undoLast();
       return true;
     }
     const redoKey = (e.metaKey || e.ctrlKey) && ((e.key.toLowerCase() === "z" && e.shiftKey) || (e.ctrlKey && e.key === "y"));
-    if (redoKey && !isTyping(e)) {
+    if (redoKey && collectionKeys) {
       void redoLast();
       return true;
     }

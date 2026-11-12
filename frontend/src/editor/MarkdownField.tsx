@@ -1,5 +1,5 @@
 import { closeBrackets, closeBracketsKeymap } from "@codemirror/autocomplete";
-import { defaultKeymap, history, historyKeymap, indentWithTab } from "@codemirror/commands";
+import { defaultKeymap, history, indentWithTab, redo, undo } from "@codemirror/commands";
 import { markdown, markdownLanguage } from "@codemirror/lang-markdown";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
 import { EditorState, Prec } from "@codemirror/state";
@@ -138,7 +138,7 @@ export const MarkdownField = forwardRef<MarkdownFieldHandle, MarkdownFieldProps>
             { key: "Backspace", run: deleteDollarPair },
           ]),
         ),
-        keymap.of([...closeBracketsKeymap, ...defaultKeymap, ...historyKeymap, indentWithTab]),
+        keymap.of([...closeBracketsKeymap, ...defaultKeymap, ...FIELD_HISTORY, indentWithTab]),
         EditorView.updateListener.of((u) => {
           if (u.docChanged) latest.current.onChange(u.state.doc.toString());
         }),
@@ -202,3 +202,14 @@ export const MarkdownField = forwardRef<MarkdownFieldHandle, MarkdownFieldProps>
 export function focusFirstEditor(root: HTMLElement | null) {
   root?.querySelector<HTMLElement>(".cm-content")?.focus();
 }
+
+/*
+ * Undo and redo of typing. Unlike CodeMirror's historyKeymap these leave the
+ * key alone when the field has nothing to undo or redo, so it reaches the
+ * app, which then undoes or redoes the last change to the collection.
+ */
+const FIELD_HISTORY = [
+  { key: "Mod-z", run: undo },
+  { key: "Mod-Shift-z", run: redo },
+  { key: "Mod-y", run: redo },
+];
