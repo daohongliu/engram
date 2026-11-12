@@ -3,10 +3,11 @@ import { api, CardDetail, NextCard, ReviewCard, UpcomingCard } from "../api";
 import { CardHtml } from "../components/CardHtml";
 import { tip } from "../components/Tooltips";
 import { CardInfo } from "../components/CardInfo";
-import { Close, Edit, Info, More } from "../components/Icons";
+import { Close, Edit, Info, More, Sidebar } from "../components/Icons";
 import { NoteFields } from "../components/NoteFields";
 import { changeNotetype, NotetypeSelect } from "../components/NotetypeSelect";
 import { duration, plural } from "../lib/format";
+import { useLocalStorage } from "../lib/hooks";
 import { isTyping, MOD, useKeys } from "../lib/keys";
 import { navigate } from "../lib/router";
 import { invalidate } from "../lib/store";
@@ -32,6 +33,7 @@ export function Review({ decks }: { decks: string }) {
   const [data, setData] = useState<NextCard | null>(null);
   const [revealed, setRevealed] = useState(false);
   const [panel, setPanel] = useState<null | "edit" | "info">(null);
+  const [showUpNext, setShowUpNext] = useLocalStorage("review.upNext", true);
   const [menu, setMenu] = useState(false);
   const shownAt = useRef(Date.now());
   const body = useRef<HTMLDivElement>(null);
@@ -127,6 +129,7 @@ export function Review({ decks }: { decks: string }) {
     if (e.key === "-") return void act("bury"), true;
     if (e.key === "!") return void act("suspend"), true;
     if (k === "u") return void undoLast(), true;
+    if (k === "n") return setShowUpNext(!showUpNext), true;
   });
 
   // Jump to a card further down the queue; the one being skipped stays waiting.
@@ -141,7 +144,7 @@ export function Review({ decks }: { decks: string }) {
   };
 
   if (!data) return null;
-  const upcoming = data.done ? null : data.upcoming;
+  const upcoming = data.done || !showUpNext ? null : data.upcoming;
   const remaining = data.counts.new + data.counts.learn + data.counts.review;
 
   return (
@@ -150,12 +153,25 @@ export function Review({ decks }: { decks: string }) {
         <a href={home} {...tip("Back", "Esc")}>
           ← {data.deckName.split("::").join(" › ")}
         </a>
-        {card && card.flag > 0 && (
-          <span>
-            <span className="cell-flag" style={{ ["--c" as string]: `var(--flag-${card.flag})` }} />
-            {FLAGS[card.flag]} flag
-          </span>
-        )}
+        <div className="review-top-right">
+          {card && card.flag > 0 && (
+            <span>
+              <span className="cell-flag" style={{ ["--c" as string]: `var(--flag-${card.flag})` }} />
+              {FLAGS[card.flag]} flag
+            </span>
+          )}
+          {!data.done && (
+            <button
+              className="icon-btn up-next-toggle"
+              onClick={() => setShowUpNext(!showUpNext)}
+              aria-pressed={showUpNext}
+              aria-label={showUpNext ? "Hide Up next" : "Show Up next"}
+              {...tip(showUpNext ? "Hide Up next" : "Show Up next", "N")}
+            >
+              <Sidebar />
+            </button>
+          )}
+        </div>
       </div>
 
       {card ? (

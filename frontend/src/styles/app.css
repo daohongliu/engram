@@ -954,6 +954,17 @@ tr:hover .row-menu-btn,
   color: var(--text-3);
 }
 
+.review-top-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Up next only has room on wide windows, so its toggle only shows there. */
+.up-next-toggle {
+  display: none;
+}
+
 .review-top a {
   color: var(--text-2);
 }
@@ -1275,6 +1286,9 @@ tr:hover .row-menu-btn,
 @media (min-width: 1100px) {
   .up-next {
     display: flex;
+  }
+  .up-next-toggle {
+    display: inline-flex;
   }
   .review.has-up-next {
     grid-template-columns: minmax(0, 1fr) 288px;

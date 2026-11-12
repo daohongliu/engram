@@ -70,6 +70,13 @@ export const Restore = (p: SVGProps<SVGSVGElement>) => (
     <path d="M13.5 6.5h-4v-4M9.5 6.5 14 2M2.5 9.5h4v4M6.5 9.5 2 14" />
   </svg>
 );
+export const Sidebar = (p: SVGProps<SVGSVGElement>) => (
+  <svg {...base(p)}>
+    <rect x="2" y="3" width="12" height="10" rx="1.5" />
+    <path d="M10 3v10" />
+  </svg>
+);
+
 export const Info = (p: SVGProps<SVGSVGElement>) => (
   <svg {...base(p)}>
     <circle cx="8" cy="8" r="6" />

@@ -21,6 +21,7 @@ const SECTIONS: { title: string; keys: [string, string][] }[] = [
       ["-", "Bury"],
       ["!", "Suspend"],
       ["U", "Undo"],
+      ["N", "Show or hide Up next"],
       ["Esc", "Back to deck"],
     ],
   },
