@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useRef, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { CommandPalette } from "./components/CommandPalette";
 import { HelpOverlay } from "./components/HelpOverlay";
 import { Auto, Gear, Mark, Moon, Search, Sun } from "./components/Icons";
@@ -23,7 +23,8 @@ const NAV = [
   { href: "/", label: "Decks", key: "d" },
   { href: "/add", label: "Add", key: "a" },
   { href: "/browse", label: "Browse", key: "b" },
-  { href: "/stats", label: "Stats", key: "s" },
+  // T, as in Anki, since S starts studying on a deck's page.
+  { href: "/stats", label: "Stats", key: "t" },
 ];
 
 export function App() {
@@ -34,7 +35,6 @@ export function App() {
   const theme = useTheme();
   const [palette, setPalette] = useState(false);
   const [help, setHelp] = useState(false);
-  const chord = useRef<number>(0);
 
   useKeys((e) => {
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
@@ -50,16 +50,9 @@ export function App() {
       setHelp(true);
       return true;
     }
-    if (Date.now() - chord.current < 900) {
-      chord.current = 0;
-      const target = NAV.find((n) => n.key === e.key.toLowerCase());
-      if (target) {
-        navigate(target.href);
-        return true;
-      }
-    }
-    if (e.key === "g") {
-      chord.current = Date.now();
+    const target = NAV.find((n) => n.key === e.key);
+    if (target) {
+      navigate(target.href);
       return true;
     }
     if (e.key === "/" && !path.startsWith("/browse")) {
@@ -101,7 +94,7 @@ export function App() {
               key={n.href}
               href={n.href}
               className={section === n.href || (n.href === "/add" && path === "/write") ? "active" : ""}
-              {...tip("", `G then ${n.key.toUpperCase()}`)}
+              {...tip("", n.key.toUpperCase())}
             >
               {n.label}
             </a>

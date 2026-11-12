@@ -23,10 +23,10 @@ export function CommandPalette({ onClose, onHelp }: { onClose: () => void; onHel
 
   const commands = useMemo<Command[]>(() => {
     const base: Command[] = [
-      { id: "home", title: "Decks", hint: "g d", section: "Go to", run: () => navigate("/") },
-      { id: "add", title: "Add card", hint: "g a", section: "Go to", run: () => navigate("/add") },
-      { id: "browse", title: "Browse", hint: "g b", section: "Go to", run: () => navigate("/browse") },
-      { id: "stats", title: "Stats", hint: "g s", section: "Go to", run: () => navigate("/stats") },
+      { id: "home", title: "Decks", hint: "D", section: "Go to", run: () => navigate("/") },
+      { id: "add", title: "Add card", hint: "A", section: "Go to", run: () => navigate("/add") },
+      { id: "browse", title: "Browse", hint: "B", section: "Go to", run: () => navigate("/browse") },
+      { id: "stats", title: "Stats", hint: "T", section: "Go to", run: () => navigate("/stats") },
       { id: "settings", title: "Settings", section: "Go to", run: () => navigate("/settings") },
       { id: "theme", title: "Toggle theme", section: "Action", run: cycleTheme },
       { id: "undo", title: "Undo", hint: "⌘Z", section: "Action", run: () => void undoLast() },

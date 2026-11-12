@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
  *
  * Any element can opt in with `data-tip` (what it does) and `data-kbd`
  * (the keys, separated by spaces; "then" and "or" are shown as words, so
- * "G then D" reads as a sequence). One listener on the document drives
+ * "Space or Enter" reads naturally). One listener on the document drives
  * them all, so controls need no wrapper component.
  */
 
