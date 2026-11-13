@@ -123,7 +123,7 @@ export function Add() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Enter" || !(e.metaKey || e.ctrlKey) || e.isComposing) return;
-      if (document.querySelector(".overlay")) return; // command menu or a dialog is open
+      if (document.querySelector(".backdrop")) return; // command menu or a dialog is open
       e.preventDefault();
       e.stopPropagation();
       // A tag still being typed is committed on blur; take it with the card.

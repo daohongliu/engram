@@ -101,7 +101,7 @@ export function CommandPalette({ onClose, onHelp }: { onClose: () => void; onHel
   };
 
   return (
-    <div className="overlay" onMouseDown={onClose}>
+    <div className="backdrop" onMouseDown={onClose}>
       <div className="palette" role="dialog" aria-label="Command palette" onMouseDown={(e) => e.stopPropagation()}>
         <input
           ref={input}

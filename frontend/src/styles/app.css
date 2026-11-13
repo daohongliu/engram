@@ -2525,7 +2525,8 @@ tr:hover .row-menu-btn,
 
 /* ----------------------------- overlays ----------------------------- */
 
-.overlay {
+/* Not called .overlay: KaTeX uses that class inside formulas (for \vec). */
+.backdrop {
   position: fixed;
   inset: 0;
   z-index: 50;

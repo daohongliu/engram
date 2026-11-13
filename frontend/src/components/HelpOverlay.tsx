@@ -60,7 +60,7 @@ export function HelpOverlay({ onClose }: { onClose: () => void }) {
     }
   });
   return (
-    <div className="overlay" onMouseDown={onClose}>
+    <div className="backdrop" onMouseDown={onClose}>
       <div className="help-sheet" role="dialog" aria-label="Keyboard shortcuts" onMouseDown={(e) => e.stopPropagation()}>
         <h2>Keyboard shortcuts</h2>
         <div className="help-grid">

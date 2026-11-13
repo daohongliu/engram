@@ -108,6 +108,8 @@ export function Review({ decks }: { decks: string }) {
 
   useKeys((e) => {
     if (panel === "edit" || isTyping(e) || e.metaKey || e.ctrlKey || e.altKey) return;
+    // A dialog on top (the shortcuts list, the command menu) takes the keys.
+    if (document.querySelector(".backdrop")) return;
     if (e.key === "Escape") {
       if (panel) setPanel(null);
       else navigate(home);
@@ -464,7 +466,7 @@ function EditDrawer({ noteId, onClose }: { noteId: number; onClose: (changed: bo
   });
 
   return (
-    <div className="overlay" style={{ alignItems: "stretch", justifyContent: "flex-end", padding: 0 }} onMouseDown={() => void save()}>
+    <div className="backdrop" style={{ alignItems: "stretch", justifyContent: "flex-end", padding: 0 }} onMouseDown={() => void save()}>
       <div className="panel" style={{ width: "min(560px, 100%)", borderRadius: 0, overflowY: "auto", display: "flex", flexDirection: "column" }} onMouseDown={(e) => e.stopPropagation()}>
         <div className="editor-head">
           <h2>Edit note</h2>
