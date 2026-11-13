@@ -128,6 +128,12 @@
   box-sizing: border-box;
 }
 
+/* No two-finger swipe back/forward: it is too easy to leave a study session by accident. */
+html,
+body {
+  overscroll-behavior-x: none;
+}
+
 html {
   -webkit-text-size-adjust: 100%;
   -webkit-font-smoothing: antialiased;
