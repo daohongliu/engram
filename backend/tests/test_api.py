@@ -516,3 +516,19 @@ def test_cloze_inside_maths_is_coloured_while_studying(client):
                  if c["id"] != card["id"])
     card2 = client.get(f"/api/review/{did}/next", params={"cardId": other["id"]}).json()["card"]
     assert r"\(a\htmlClass{cloze}{[hint]}\)" in card2["question"]
+
+
+def test_up_next_shows_what_comes_next(client, deck_ids):
+    # Several decks take turns; the card shown after an answer must be the
+    # one Up next listed first, not the first deck's next card again.
+    spec = f'{deck_ids["Maths::Probability"]},{deck_ids["Computer Science::Algorithms"]}'
+    view = client.get(f"/api/review/{spec}/next").json()
+    decks_seen = set()
+    for _ in range(4):
+        promised = view["upcoming"][0]["id"]
+        decks_seen.add(view["card"]["deck"])
+        # Easy, so the card does not come back as a learning card.
+        client.post(f"/api/review/{spec}/answer", json={"cardId": view["card"]["id"], "rating": 4})
+        view = client.get(f"/api/review/{spec}/next").json()
+        assert view["card"]["id"] == promised
+    assert len(decks_seen) == 2

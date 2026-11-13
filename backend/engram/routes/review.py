@@ -89,7 +89,34 @@ def _gather(col, ids: list[int]) -> tuple[list[tuple[int, Any]], dict[str, int]]
         counts["learn"] += q.learning_count
         counts["review"] += q.review_count
         lists.append([(root, qc) for qc in q.cards])
-    return _interleave(lists), counts
+    return _interleave(_resume_turns(col, lists)), counts
+
+
+def _resume_turns(col, lists: list[list[tuple[int, Any]]]) -> list[list[tuple[int, Any]]]:
+    """Order the decks so taking turns carries on after the last answer.
+
+    The decks take turns, one card each. Without this every call would start
+    again from the first deck, so the second card in the session (and in Up
+    next) would keep being pushed back by the first deck's next card.
+    Starting after the deck of the most recently answered card makes the
+    card shown next the one Up next listed first.
+    """
+    if len(lists) < 2:
+        return lists
+    row = col.db.first(
+        "select c.did, c.odid from revlog r join cards c on c.id = r.cid order by r.id desc limit 1"
+    )
+    if not row:
+        return lists
+    name = col.decks.name(row[1] or row[0])
+    roots = [cards[0][0] if cards else None for cards in lists]
+    for i, root in enumerate(roots):
+        if root is None:
+            continue
+        root_name = col.decks.name(root)
+        if name == root_name or name.startswith(root_name + "::"):
+            return lists[i + 1 :] + lists[: i + 1]
+    return lists
 
 
 def _interleave(lists: list[list[tuple[int, Any]]]) -> list[tuple[int, Any]]:
