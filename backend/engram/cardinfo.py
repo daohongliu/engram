@@ -55,6 +55,8 @@ def render_card(card: Card, browser: bool = False) -> dict[str, Any]:
     out = card.render_output(reload=True, browser=browser)
     q = clean_card_html(out.question_text, out.question_av_tags)
     a_full = clean_card_html(out.answer_text, out.answer_av_tags)
+    if card.note_type()["type"] == 1:
+        q, a_full = colour_clozes_in_maths(card, q, a_full)
     has_split = bool(re.search(r"<hr id=['\"]?answer", a_full))
     return {
         "question": q,
@@ -62,6 +64,52 @@ def render_card(card: Card, browser: bool = False) -> dict[str, Any]:
         "answerFull": a_full,
         "answerRepeatsQuestion": has_split,
     }
+
+
+# Maths in stored fields, and the deletions inside it.
+_MATH_RE = re.compile(r"\\\(.*?\\\)|\\\[.*?\\\]", re.S)
+_CLOZE_RE = re.compile(r"\{\{c(\d+)::(.*?)(?:::(.*?))?\}\}", re.S)
+
+
+def colour_clozes_in_maths(card: Card, question: str, answer: str) -> tuple[str, str]:
+    """Show this card's deletions inside maths in the cloze colour.
+
+    Outside maths Anki wraps a deletion in <span class="cloze">. Inside maths
+    it can't, so the question shows a bare [...] and the answer the bare text,
+    both typeset like the rest of the formula. For each formula in the note
+    that holds one of this card's deletions, the formula Anki produced is
+    found and replaced by one where that part is wrapped in \\htmlClass{cloze},
+    which the frontend's KaTeX allows. Formulas that can't be found exactly
+    are left as they are.
+    """
+    ordinal = str(card.ord + 1)
+    for field in card.note().fields:
+        for math in _MATH_RE.findall(field):
+            if "{{c" not in math or not any(m.group(1) == ordinal for m in _CLOZE_RE.finditer(math)):
+                continue
+
+            def side(active, other=lambda m: m.group(2)):
+                return _CLOZE_RE.sub(lambda m: active(m) if m.group(1) == ordinal else other(m), math)
+
+            hidden = lambda m: f"[{m.group(3) or '...'}]"  # noqa: E731
+            plain_q = side(hidden)
+            plain_a = side(lambda m: m.group(2))
+            question = question.replace(plain_q, side(lambda m: _cloze_tex(hidden(m))), 1)
+            answer = answer.replace(plain_a, side(lambda m: _cloze_tex(m.group(2))), 1)
+    return question, answer
+
+
+def _cloze_tex(tex: str) -> str:
+    """Wrap TeX in the cloze colour, unless its braces do not balance."""
+    depth = 0
+    for ch in re.sub(r"\\.", "", tex):
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth < 0:
+                return tex
+    return f"\\htmlClass{{cloze}}{{{tex}}}" if depth == 0 and tex.strip() else tex
 
 
 def describe_due(col: Collection, ctype: int, queue: int, due: int, ivl: int) -> dict[str, Any]:

@@ -498,3 +498,21 @@ def test_redo_after_undo(client, deck_ids):
     r = client.post("/api/redo")
     assert r.status_code == 200 and r.json()["redid"]
     assert client.get(f"/api/notes/{nid}").status_code == 404
+
+
+def test_cloze_inside_maths_is_coloured_while_studying(client):
+    cloze = next(t for t in client.get("/api/notetypes").json() if t["name"] == "Cloze")
+    did = client.post("/api/decks", json={"name": "Maths clozes"}).json()["id"]
+    text = r"For {{c1::$|x| < 1$}}, $(1+x)^\alpha = {{c1::\sum_k x^k}}$ and $a{{c2::b::hint}}$"
+    client.post("/api/notes", json={"notetypeId": cloze["id"], "deckId": did, "fields": [text, ""], "tags": []})
+
+    card = client.get(f"/api/review/{did}/next").json()["card"]
+    assert r"\((1+x)^\alpha = \htmlClass{cloze}{[...]}\)" in card["question"]
+    assert r"\htmlClass{cloze}{\sum_k x^k}" in card["answer"]
+    # The other card's deletion stays plain on this card.
+    assert r"\(ab\)" in card["answer"] and "hint" not in card["question"]
+
+    other = next(c for c in client.get("/api/search", params={"text": "hint"}).json()["rows"]
+                 if c["id"] != card["id"])
+    card2 = client.get(f"/api/review/{did}/next", params={"cardId": other["id"]}).json()["card"]
+    assert r"\(a\htmlClass{cloze}{[hint]}\)" in card2["question"]
