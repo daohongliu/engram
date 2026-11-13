@@ -428,7 +428,7 @@ const ResultCard = memo(function ResultCard({
       />
       <div className="result-body">
         <CardHtml html={row.question} className="result-q" onReady={markClipped} />
-        {row.answer && <CardHtml html={row.answer} className="result-a" inline />}
+        {row.answer && <CardHtml html={row.answer} className="result-a" inline onReady={markClipped} />}
         <div className="result-meta">
           {row.flag > 0 && <span className="cell-flag" style={{ ["--c" as string]: `var(--flag-${row.flag})` }} title={`${FLAG_NAMES[row.flag]} flag`} />}
           <span className="result-deck" title={row.deck}>

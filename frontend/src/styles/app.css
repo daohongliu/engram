@@ -1616,6 +1616,11 @@ tr:hover .row-menu-btn,
   mask-image: linear-gradient(to bottom, #000 calc(100% - 2.4em), transparent);
 }
 
+.result-a.is-clipped {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 1.5em), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 1.5em), transparent);
+}
+
 .result-a {
   margin-top: 2px;
   font-size: 15px;
@@ -1625,6 +1630,8 @@ tr:hover .row-menu-btn,
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  /* A tall formula (an aligned proof, say) is one line to the clamp. */
+  max-height: 4.4em;
 }
 
 .result-body .card-html p {
