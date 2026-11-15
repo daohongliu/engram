@@ -97,6 +97,7 @@ export type NextCard =
   | {
       done: false;
       deckName: string;
+      filtered?: boolean;
       counts: Counts;
       queue: "new" | "learn" | "review";
       intervals: string[];
@@ -106,6 +107,7 @@ export type NextCard =
   | {
       done: true;
       deckName: string;
+      filtered?: boolean;
       counts: Counts;
       congrats: {
         learnRemaining: number;
@@ -212,6 +214,17 @@ export interface CardDetail {
   answer: string;
 }
 
+export interface AheadSettings {
+  /** Empty for every deck. */
+  decks: number[];
+  tags: string[];
+  tagMode: "any" | "all";
+  excludeTags: string[];
+  days: number;
+  newCards: number;
+  limit: number;
+}
+
 export interface Notetype {
   id: number;
   name: string;
@@ -315,6 +328,9 @@ export const api = {
       notetypeId,
       fields,
     }),
+
+  aheadPreview: (body: AheadSettings) => post<{ reviews: number; new: number; total: number }>("/api/ahead/preview", body),
+  startAhead: (body: AheadSettings) => post<{ deckId: number; total: number }>("/api/ahead", body),
 
   stats: () => get<Stats>("/api/stats"),
   undoStatus: () => get<{ undo: string | null; redo: string | null }>("/api/undo"),

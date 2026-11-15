@@ -7,7 +7,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from .routes import browse, decks, files, notes, review, stats
+from .routes import ahead, browse, decks, files, notes, review, stats
 from .store import get_store, set_store
 
 STATIC = Path(__file__).parent / "static"
@@ -24,7 +24,7 @@ async def lifespan(_app: FastAPI):
 
 def create_app() -> FastAPI:
     app = FastAPI(title="Engram", lifespan=lifespan)
-    for module in (decks, review, browse, notes, stats, files):
+    for module in (decks, review, ahead, browse, notes, stats, files):
         app.include_router(module.router)
 
     @app.exception_handler(Exception)

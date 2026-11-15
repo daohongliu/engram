@@ -3,6 +3,7 @@ import { api, DeckOptions } from "../api";
 import { tip } from "../components/Tooltips";
 import { plural } from "../lib/format";
 import { isTyping, useKeys } from "../lib/keys";
+import { openStudyAhead } from "../lib/ahead";
 import { navigate } from "../lib/router";
 import { decks as decksStore, flattenDecks, invalidate } from "../lib/store";
 import { toast } from "../lib/toast";
@@ -27,6 +28,7 @@ export function DeckOverview({ deckId }: { deckId: number }) {
 
   useKeys((e) => {
     if (isTyping(e) || e.metaKey || e.ctrlKey) return;
+    if (document.querySelector(".backdrop")) return; // a dialog is open
     if (e.key === " " || e.key === "Enter" || e.key === "s") {
       navigate(`/study/${deckId}`);
       return true;
@@ -92,6 +94,9 @@ export function DeckOverview({ deckId }: { deckId: number }) {
             <a className="btn" href={`/add?deck=${deck.id}`}>
               Add
             </a>
+            <button className="btn" onClick={() => openStudyAhead([deck.id])} title="Review this deck's cards before they are due">
+              Study ahead
+            </button>
             <button className="btn btn-primary" onClick={() => navigate(`/study/${deck.id}`)} disabled={!due} {...tip("", "S or Space")}>
               Study now
             </button>

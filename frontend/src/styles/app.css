@@ -2834,3 +2834,107 @@ tr:hover .row-menu-btn,
   font-weight: normal;
   letter-spacing: normal;
 }
+
+/* ----------------------------- study ahead ----------------------------- */
+
+.ahead {
+  width: min(600px, 100%);
+  max-height: 84vh;
+  overflow-y: auto;
+  padding: 20px 24px 18px;
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  animation: pop 0.14s var(--ease);
+}
+
+.ahead h2 {
+  margin-bottom: 4px;
+}
+
+.ahead-intro {
+  margin: 0 0 16px;
+  font-size: 13px;
+}
+
+.ahead-row {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  align-items: start;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.ahead-label {
+  padding-top: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-2);
+}
+
+.ahead-field {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ahead-field .tag-input {
+  width: 100%;
+}
+
+.ahead-days {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.ahead-number {
+  width: 76px;
+}
+
+.ahead-decks {
+  width: 100%;
+  max-height: 180px;
+  overflow-y: auto;
+  padding: 4px 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+}
+
+.ahead-decks label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 10px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.ahead-decks label:hover {
+  background: var(--surface-hover);
+}
+
+.ahead-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  font-size: 14px;
+}
+
+@media (max-width: 560px) {
+  .ahead-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .ahead-label {
+    padding-top: 0;
+  }
+}

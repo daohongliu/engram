@@ -9,6 +9,7 @@ import { changeNotetype, NotetypeSelect } from "../components/NotetypeSelect";
 import { duration, plural } from "../lib/format";
 import { useLocalStorage } from "../lib/hooks";
 import { isTyping, MOD, useKeys } from "../lib/keys";
+import { openStudyAhead } from "../lib/ahead";
 import { navigate } from "../lib/router";
 import { invalidate } from "../lib/store";
 import { toast } from "../lib/toast";
@@ -369,7 +370,41 @@ function InfoDrawer({ cardId, onClose }: { cardId: number; onClose: () => void }
 
 function Finished({ data, decks, single }: { data: NextCard & { done: true }; decks: string; single: number | null }) {
   const c = data.congrats;
-  const finished = single ? "You have finished this deck for now." : decks === "0" ? "You have studied everything for now." : "You have finished these decks for now.";
+  const finished = data.filtered
+    ? "You have studied all of these cards."
+    : single
+      ? "You have finished this deck for now."
+      : decks === "0"
+        ? "You have studied everything for now."
+        : "You have finished these decks for now.";
+  // A filtered deck (Study ahead) is removed when done, which also returns
+  // any cards still in it, such as learning cards, to their own decks.
+  const done = async () => {
+    if (single) await api.deleteDeck(single).catch(() => undefined);
+    invalidate();
+    navigate("/");
+  };
+  if (data.filtered) {
+    return (
+      <div className="panel finished">
+        <h1>Congratulations</h1>
+        <p>{finished}</p>
+        {c.learnRemaining > 0 && c.nextLearnLabel && (
+          <p className="muted">
+            {plural(c.learnRemaining, "learning card")} due in {c.nextLearnLabel}. Done returns them to their decks.
+          </p>
+        )}
+        <div className="finished-actions">
+          <button className="btn" onClick={() => openStudyAhead()}>
+            Study ahead again
+          </button>
+          <button className="btn btn-primary" onClick={() => void done()}>
+            Done
+          </button>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="panel finished">
       <h1>Congratulations</h1>
@@ -392,6 +427,9 @@ function Finished({ data, decks, single }: { data: NextCard & { done: true }; de
         <a className="btn" href={single ? `/add?deck=${single}` : "/add"}>
           Add cards
         </a>
+        <button className="btn" onClick={() => openStudyAhead(decks === "0" ? [] : decks.split(",").map(Number))}>
+          Study ahead
+        </button>
         <a className="btn btn-primary" href="/">
           Back to decks
         </a>

@@ -1,5 +1,6 @@
 import { KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import { rank } from "../lib/fuzzy";
+import { openStudyAhead } from "../lib/ahead";
 import { navigate } from "../lib/router";
 import { decks, flattenDecks } from "../lib/store";
 import { cycleTheme } from "../lib/theme";
@@ -31,6 +32,7 @@ export function CommandPalette({ onClose, onHelp }: { onClose: () => void; onHel
       { id: "theme", title: "Toggle theme", section: "Action", run: cycleTheme },
       { id: "undo", title: "Undo", hint: "⌘Z", section: "Action", run: () => void undoLast() },
       { id: "redo", title: "Redo", hint: "⇧⌘Z", section: "Action", run: () => void redoLast() },
+      { id: "ahead", title: "Study ahead…", section: "Action", run: () => openStudyAhead() },
       { id: "help", title: "Keyboard shortcuts", hint: "?", section: "Action", run: onHelp },
     ];
     const totals = deckData?.totals;

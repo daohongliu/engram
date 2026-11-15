@@ -13,6 +13,7 @@ are Markdown, and maths is written in LaTeX.
 
 - Decks and subdecks, each with its own daily limits
 - Studying one deck, several decks, or all decks together
+- Studying ahead: cards due in the next few days, from any decks and tags
 - A list of upcoming cards next to the current card
 - A rendered preview under each field while editing
 - Cloze deletions, including inside maths

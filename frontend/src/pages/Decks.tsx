@@ -3,6 +3,7 @@ import { api, DeckNode } from "../api";
 import { Chevron, More, Plus } from "../components/Icons";
 import { duration, plural } from "../lib/format";
 import { useAsync, useLocalStorage } from "../lib/hooks";
+import { openStudyAhead } from "../lib/ahead";
 import { navigate } from "../lib/router";
 import { decks as decksStore, invalidate } from "../lib/store";
 import { toast } from "../lib/toast";
@@ -84,6 +85,9 @@ export function Decks() {
         <div className="page-actions">
           <button className="btn" onClick={() => setCreating("")}>
             <Plus /> Create deck
+          </button>
+          <button className="btn" onClick={() => openStudyAhead(chosen.length ? chosen : null)} title="Review cards before they are due">
+            Study ahead
           </button>
           {chosen.length > 0 ? (
             <>

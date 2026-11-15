@@ -10,6 +10,7 @@ import { match, navigate, useLinkInterception, useLocation } from "./lib/router"
 import { decks, settings } from "./lib/store";
 import { cycleTheme, useTheme } from "./lib/theme";
 import { redoLast, undoLast } from "./lib/undo";
+import { StudyAhead } from "./components/StudyAhead";
 import { Add } from "./pages/Add";
 import { Browse } from "./pages/Browse";
 import { DeckOverview } from "./pages/DeckOverview";
@@ -55,6 +56,7 @@ export function App() {
       return true;
     }
     if (isTyping(e) || e.metaKey || e.ctrlKey || e.altKey || palette || help) return;
+    if (document.querySelector(".backdrop")) return; // a dialog is open
     if (e.key === "?") {
       setHelp(true);
       return true;
@@ -126,6 +128,7 @@ export function App() {
       <main className="page">{page}</main>
       <Toasts />
       <Tooltips />
+      <StudyAhead />
       <Lightbox />
       {palette && <CommandPalette onClose={() => setPalette(false)} onHelp={() => setHelp(true)} />}
       {help && <HelpOverlay onClose={() => setHelp(false)} />}

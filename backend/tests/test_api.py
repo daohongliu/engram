@@ -532,3 +532,51 @@ def test_up_next_shows_what_comes_next(client, deck_ids):
         view = client.get(f"/api/review/{spec}/next").json()
         assert view["card"]["id"] == promised
     assert len(decks_seen) == 2
+
+
+def _make_review_due_in(client, card_ids, days):
+    client.post("/api/cards/bulk", json={"ids": card_ids, "action": "setDue", "days": str(days)})
+
+
+def test_study_ahead(client, deck_ids):
+    prob, algo = deck_ids["Maths::Probability"], deck_ids["Computer Science::Algorithms"]
+    p_cards = [r["id"] for r in client.get("/api/search", params={"deck": "Maths::Probability", "limit": 3}).json()["rows"]]
+    a_cards = [r["id"] for r in client.get("/api/search", params={"deck": "Computer Science::Algorithms", "limit": 2}).json()["rows"]]
+    _make_review_due_in(client, p_cards[:2], 3)
+    _make_review_due_in(client, p_cards[2:], 20)
+    _make_review_due_in(client, a_cards, 5)
+    for cid in a_cards:
+        client.post("/api/cards/bulk", json={"ids": [cid], "action": "addTags", "tags": "graphs"})
+
+    def count(**body):
+        return client.post("/api/ahead/preview", json=body).json()
+
+    assert count(days=7)["reviews"] == 4  # every deck, due within a week
+    assert count(days=30)["reviews"] == 5
+    assert count(days=7, decks=[prob])["reviews"] == 2
+    assert count(days=7, decks=[prob, algo])["reviews"] == 4
+    assert count(days=7, decks=[deck_ids["Maths"], prob])["reviews"] == 2  # Probability is inside Maths
+    assert count(days=7, tags=["graphs"])["reviews"] == 2
+    assert count(days=7, tags=["graphs", "nonexistent"], tagMode="all")["reviews"] == 0
+    assert count(days=7, excludeTags=["graphs"])["reviews"] == 2
+    assert count(days=7, limit=1)["reviews"] == 1
+    with_new = count(days=7, newCards=2)
+    assert with_new["new"] == 2 and with_new["total"] == 6
+
+    r = client.post("/api/ahead", json={"days": 7, "decks": [prob]}).json()
+    did = r["deckId"]
+    assert r["total"] == 2
+    view = client.get(f"/api/review/{did}/next").json()
+    assert view["filtered"] and view["card"]["id"] in p_cards[:2]
+
+    # Starting again rebuilds the same deck with the new settings.
+    r2 = client.post("/api/ahead", json={"days": 7}).json()
+    assert r2["deckId"] == did and r2["total"] == 4
+    # Removing it returns the cards to their decks.
+    client.delete(f"/api/decks/{did}")
+    assert client.post("/api/ahead/preview", json={"days": 7, "decks": [prob]}).json()["reviews"] == 2
+    home = client.get(f"/api/cards/{p_cards[0]}").json()
+    assert home["deckId"] == prob
+
+    assert client.post("/api/ahead", json={"days": 1, "decks": [prob]}).status_code == 400
+    assert not any(d["name"] == "Study ahead" for d in client.get("/api/decks").json()["decks"])

@@ -143,6 +143,14 @@ def _session_name(col, ids: list[int]) -> str:
     return ", ".join(col.decks.name(i).split("::")[-1] for i in roots)
 
 
+def _is_filtered(col, ids: list[int]) -> bool:
+    """A session of one filtered deck, such as "Study ahead"."""
+    if len(ids) != 1 or ids == [ALL]:
+        return False
+    deck = col.decks.get(ids[0], default=False)
+    return bool(deck and deck.get("dyn"))
+
+
 def _check_decks(col, ids: list[int]) -> None:
     if ids != [ALL] and not all(col.decks.get(i, default=False) for i in ids):
         raise HTTPException(404, "No such deck.")
@@ -157,7 +165,13 @@ def next_card(decks: str, cardId: int | None = None) -> dict[str, Any]:
         waiting, counts = _gather(col, ids)
         name = _session_name(col, ids)
         if not waiting:
-            return {"done": True, "deckName": name, "counts": counts, "congrats": _congrats(col, ids)}
+            return {
+                "done": True,
+                "deckName": name,
+                "filtered": _is_filtered(col, ids),
+                "counts": counts,
+                "congrats": _congrats(col, ids),
+            }
 
         index = next((i for i, (_, qc) in enumerate(waiting) if qc.card.id == cardId), 0)
         current = waiting[index][1]
@@ -170,6 +184,7 @@ def next_card(decks: str, cardId: int | None = None) -> dict[str, Any]:
         return {
             "done": False,
             "deckName": name,
+            "filtered": _is_filtered(col, ids),
             "counts": counts,
             "queue": _QUEUE_KIND.get(int(current.queue), "review"),
             "intervals": labels,
