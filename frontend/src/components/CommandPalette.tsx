@@ -1,4 +1,5 @@
 import { KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
+import { signOut } from "../api";
 import { rank } from "../lib/fuzzy";
 import { openStudyAhead } from "../lib/ahead";
 import { navigate } from "../lib/router";
@@ -34,6 +35,7 @@ export function CommandPalette({ onClose, onHelp }: { onClose: () => void; onHel
       { id: "redo", title: "Redo", hint: "⇧⌘Z", section: "Action", run: () => void redoLast() },
       { id: "ahead", title: "Study ahead…", section: "Action", run: () => openStudyAhead() },
       { id: "help", title: "Keyboard shortcuts", hint: "?", section: "Action", run: onHelp },
+      { id: "signout", title: "Sign out", section: "Action", run: () => void signOut() },
     ];
     const totals = deckData?.totals;
     const dueAll = totals ? totals.new + totals.learn + totals.review : 0;

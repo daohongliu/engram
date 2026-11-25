@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api } from "../api";
+import { api, AuthStatus, signOut } from "../api";
 import { EditorMode, setEditorMode, useEditorMode } from "../lib/editorMode";
 import { renderTex, setPreamble } from "../lib/math";
 import { settings as settingsStore } from "../lib/store";
@@ -15,6 +15,17 @@ export function SettingsPage() {
   const [preamble, setPre] = useState(s?.preamble ?? "");
   const [sample, setSample] = useState(SAMPLE);
   const [err, setErr] = useState<string | null>(null);
+  const [auth, setAuth] = useState<AuthStatus | null>(null);
+
+  useEffect(() => {
+    api.authStatus().then(setAuth, () => {});
+  }, []);
+
+  const signOutOthers = async () => {
+    const r = await api.signOutOthers();
+    toast.success(r.removed ? `Signed out ${r.removed} other browser${r.removed === 1 ? "" : "s"}.` : "No other browsers were signed in.");
+    setAuth(await api.authStatus());
+  };
 
   useEffect(() => {
     if (s) setPre(s.preamble);
@@ -94,6 +105,30 @@ export function SettingsPage() {
           </button>
         </div>
       </section>
+
+      {auth?.enabled && (
+        <section className="panel settings-section">
+          <h2>Account</h2>
+          <p>
+            {auth.remember
+              ? `This browser stays signed in until 30 days after you last use it${auth.expires ? ` (now ${new Date(auth.expires * 1000).toLocaleDateString(undefined, { day: "numeric", month: "long" })})` : ""}.`
+              : auth.since
+                ? "This browser is signed in until you close it."
+                : "This request comes from the server itself, so no sign-in is needed."}{" "}
+            {auth.browsers ? `${auth.browsers} browser${auth.browsers === 1 ? " is" : "s are"} signed in.` : ""}
+          </p>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button className="btn" onClick={() => void signOut()}>
+              Sign out
+            </button>
+            {(auth.browsers ?? 0) > 1 && (
+              <button className="btn btn-ghost" onClick={() => void signOutOthers()}>
+                Sign out other browsers
+              </button>
+            )}
+          </div>
+        </section>
+      )}
 
       <section className="panel settings-section">
         <h2>Data</h2>

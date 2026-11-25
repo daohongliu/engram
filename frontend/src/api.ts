@@ -1,5 +1,20 @@
 /* Typed wrappers around the Python backend. */
 
+export interface AuthStatus {
+  enabled: boolean;
+  signedIn?: boolean;
+  remember?: boolean | null;
+  since?: number | null;
+  expires?: number | null;
+  browsers?: number;
+}
+
+/** Sign out this browser and go to the login page. */
+export async function signOut() {
+  await fetch("/api/auth/logout", { method: "POST" });
+  location.assign("/login");
+}
+
 export class ApiError extends Error {
   status: number;
   constructor(status: number, message: string) {
@@ -17,6 +32,11 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     (init.headers as Record<string, string>)["Content-Type"] = "application/json";
   }
   const res = await fetch(path, init);
+  if (res.status === 401 && path !== "/api/auth/status") {
+    // The session ended (signed out elsewhere, or expired): go and sign in,
+    // then come back to the same page.
+    location.assign(`/login?next=${encodeURIComponent(location.pathname + location.search)}`);
+  }
   if (!res.ok) {
     let message = res.statusText;
     try {
@@ -279,6 +299,8 @@ export type BulkAction =
   | "setDue";
 
 export const api = {
+  authStatus: () => get<AuthStatus>("/api/auth/status"),
+  signOutOthers: () => post<{ removed: number }>("/api/auth/logout-others"),
   decks: () => get<{ decks: DeckNode[]; totals: Counts }>("/api/decks"),
   createDeck: (name: string) => post<{ id: number; name: string }>("/api/decks", { name }),
   renameDeck: (id: number, name: string) => patch(`/api/decks/${id}`, { name }),

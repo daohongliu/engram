@@ -7,6 +7,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from . import auth
 from .routes import ahead, browse, decks, files, notes, review, stats
 from .store import get_store, set_store
 
@@ -26,6 +27,10 @@ def create_app() -> FastAPI:
     app = FastAPI(title="Engram", lifespan=lifespan)
     for module in (decks, review, ahead, browse, notes, stats, files):
         app.include_router(module.router)
+
+    # Sign-in: the login page, session cookies, and a gate in front of
+    # everything else. Off when no password hash is configured.
+    auth.install(app)
 
     @app.exception_handler(Exception)
     async def unexpected(_request: Request, exc: Exception):  # pragma: no cover
