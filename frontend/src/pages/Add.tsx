@@ -185,7 +185,7 @@ export function Add() {
           )}
         </div>
         <div className="add-form-foot">
-          <span className="muted" style={{ fontSize: 12 }}>
+          <span className="muted kbd-hint" style={{ fontSize: 12 }}>
             <kbd>{MOD} Enter</kbd> to add
           </span>
           <button className="btn btn-primary" onClick={() => void submit()} disabled={busy} {...tip("", `${MOD} Enter`)}>

@@ -2938,3 +2938,170 @@ tr:hover .row-menu-btn,
     padding-top: 0;
   }
 }
+
+/* ------------------------------ phones ------------------------------ */
+
+/* Touch screens have no hover: show the controls that otherwise appear on it. */
+@media (hover: none) {
+  .row-menu-btn {
+    opacity: 1;
+  }
+  .col-pick input {
+    opacity: 0.6;
+  }
+}
+
+@media (max-width: 760px) {
+  /* Page headers stack: title, then the summary at full width, then the buttons. */
+  .page-head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+  }
+  .page-head h1 {
+    font-size: 30px;
+  }
+  .page-actions {
+    flex-wrap: wrap;
+  }
+  .page-actions .btn {
+    flex: 1 1 0;
+    min-width: 0;
+    height: 38px;
+  }
+  /* The main action gets a row of its own, first. */
+  .page-actions .btn-primary {
+    order: -1;
+    flex-basis: 100%;
+  }
+
+  /* Deck table: narrower number columns so names fit on one line. */
+  .deck-table th,
+  .deck-table td {
+    padding: 0 6px;
+  }
+  .deck-table .col-pick {
+    width: 30px;
+    padding: 0 0 0 10px;
+  }
+  .col-count {
+    width: 46px;
+  }
+  .col-menu {
+    width: 34px;
+  }
+  .deck-name a {
+    display: block;
+    font-size: 17px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .deck-name-inner {
+    min-width: 0;
+  }
+  .deck-table {
+    table-layout: fixed;
+  }
+
+  /* Today's figures in a two-by-two grid. */
+  .today-strip {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px 16px;
+    padding: 14px 16px;
+  }
+  .today-strip strong {
+    font-size: 24px;
+    white-space: nowrap;
+  }
+}
+
+@media (hover: none) {
+  .result-check {
+    opacity: 0.5;
+  }
+  /* Keyboard hints mean nothing on a touch screen. */
+  .add-form-foot kbd,
+  .add-form-foot .kbd-hint {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  /* Deck overview: summary above, buttons below with Study first. */
+  .overview {
+    padding: 24px 16px 48px;
+  }
+  .overview h1 {
+    font-size: 30px;
+    margin-bottom: 18px;
+  }
+  .overview-counts div {
+    padding: 14px 8px;
+  }
+  .overview-counts strong {
+    font-size: 32px;
+  }
+  .overview-actions {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 14px 16px;
+  }
+  .overview-actions > div {
+    flex-wrap: wrap;
+  }
+  .overview-actions > div > .btn {
+    flex: 1 1 0;
+    min-width: 0;
+    height: 38px;
+  }
+  .overview-actions > div > .btn-primary {
+    order: -1;
+    flex-basis: 100%;
+  }
+
+  /* Add: each picker on its own full-width line. */
+  .add-form-head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .add-form-head .segmented {
+    display: flex;
+  }
+  .add-form-head .segmented button {
+    flex: 1;
+  }
+  .add-form-head > .select,
+  .add-form-head .select {
+    width: 100%;
+    max-width: none;
+  }
+  .add-form-head .field {
+    margin-left: 0 !important;
+  }
+  .add-form-head .field .select {
+    flex: 1;
+  }
+
+  /* Long file paths wrap instead of pushing the page sideways. */
+  .settings-section code {
+    overflow-wrap: anywhere;
+  }
+  .result {
+    gap: 8px;
+  }
+}
+
+@media (max-width: 760px) {
+  .add-form-head .segmented button {
+    flex: 1 1 auto;
+    white-space: nowrap;
+    padding: 0 8px;
+  }
+  .add-form-foot .btn-primary {
+    flex: 1;
+    height: 42px;
+  }
+}
